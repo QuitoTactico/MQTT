@@ -1,6 +1,3 @@
-#include <netdb.h>
-#include <string.h>
-#include <sys/socket.h>
 #include "mqttServer.h"
 
 int main(int argc, char *argv[])
