@@ -18,6 +18,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // define the socket file descriptor to listen for incomming connections
+
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
     if (sockfd == -1)
@@ -26,19 +28,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // bind the socketfd to the port
+
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) != 0)
     {
         perror("BINDING");
         return 1;
     }
 
-    /*
-    if (connect(sockfd, res->ai_addr, res->ai_addrlen) < 0)
-    {
-        perror("CONNECTING");
-        return 1;
-    }
-    */
+    // define the size of the queue to listen for incomming connections
 
     if (listen(sockfd, QUEUESIZE) != 0)
     {
@@ -46,28 +44,52 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // accept one connection and write the info of the connected client and create its file descriptor
+
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
 
-    int newSocketfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+    int clientfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
 
-    if (newSocketfd == -1)
+    if (clientfd == -1)
     {
         perror("ACCEPT");
         return 1;
     }
 
-    printf("conection accecpted\n");
+    printf("conection accecpted\n\n");
 
-    /*
+    const int NAMESIZE = 100;
+    char hostName[NAMESIZE];
+    memset(&hostName, 0, NAMESIZE);
+    char serviceName[NAMESIZE];
+    memset(&serviceName, 0, NAMESIZE);
+    int flags = NI_NUMERICHOST + NI_NUMERICSERV;
+
+    if (getnameinfo((struct sockaddr *)&their_addr, addr_size, hostName, NAMESIZE, serviceName, NAMESIZE, flags) != 0)
+    {
+        perror("GET NAME INFO");
+        return 1;
+    }
+
+    printf("ip conection from %s to %s\n", hostName, serviceName);
+
+    // print the info recieved by the client 
+
     char buf[1000];
     int len = 1000;
 
-    recv(newSocketfd, buf, len, 0);
-    */
+    while(buf[0] != 'q')
+    {
+        recv(clientfd, buf, len, 0);
+
+        printf("info del cliente:\n\n%s\n\n", buf);
+    }
+
+    
 
     close(sockfd);
-    close(newSocketfd);
+    close(clientfd);
 
     freeaddrinfo(res);
 
