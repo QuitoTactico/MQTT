@@ -36,42 +36,15 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    /*
     if (connect(sockfd, res->ai_addr, res->ai_addrlen) < 0)
     {
         perror("CONNECTING");
         return 1;
     }
-    */
-
-    if (listen(sockfd, QUEUESIZE) != 0)
-    {
-        perror("LISTENING");
-        return 1;
-    }
-
-    struct sockaddr_storage their_addr;
-    socklen_t addr_size = sizeof(their_addr);
-
-    int newSocketfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-
-    if (newSocketfd == -1)
-    {
-        perror("ACCEPT");
-        return 1;
-    }
 
     printf("conection accecpted\n");
 
-    /*
-    char buf[1000];
-    int len = 1000;
-
-    recv(newSocketfd, buf, len, 0);
-    */
-
     close(sockfd);
-    close(newSocketfd);
 
     freeaddrinfo(res);
 

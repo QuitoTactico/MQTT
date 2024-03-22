@@ -6,6 +6,7 @@
 #include <netdb.h>
 
 #define MYPORT "1883"
+#define MY_IP ""
 #define QUEUESIZE 10
 
 /********************************/
@@ -70,7 +71,7 @@ if (0xd800 <= number && number <= 0xdfff) return false;
 if (number == 0) return false;
 */
 
-struct variableHeader {
+typedef struct {
     uint16_t nameLenght;
     char name[4];
     uint8_t version;
@@ -79,13 +80,14 @@ struct variableHeader {
     uint8_t propertiesLenght;
     uint8_t expiringIndentifier;
     uint32_t expiringInterval;
-};
+} variableHeader;
 
-struct mqttControlPacket {
+typedef struct {
     uint8_t FIXEDHEADER;
-    struct variableHeader VARIBALEHEADER;
+    uint8_t remainingLength;
+    variableHeader VARIBALEHEADER;
     uint8_t PAYLOAD;
-};
+} mqttControlPacket;
 
 /*
 FIXE HEADER
