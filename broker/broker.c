@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     hints.ai_socktype = SOCK_STREAM; // TCP
     hints.ai_flags = AI_PASSIVE; // fill in my IP for me
 
-    if (getaddrinfo(NULL, MYPORT, &hints, &res) != 0)
+    if (getaddrinfo(MY_IP, MYPORT, &hints, &res) != 0)
     {
         perror("GET ADDRES INFO");
         return 1;
@@ -84,10 +84,10 @@ int main(int argc, char *argv[])
         recv(clientfd, buf, len, 0);
 
         printf("info del cliente:\n\n%s\n\n", buf);
+
+        memset(&buf, 0, len);
     }
-
     
-
     close(sockfd);
     close(clientfd);
 
