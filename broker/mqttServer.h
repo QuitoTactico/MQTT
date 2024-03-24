@@ -9,11 +9,13 @@
 #define MY_IP ""
 #define QUEUESIZE 10
 
-/********************************/
-/*                              */
-/*         FIXED HEADER         */ 
-/*                              */ 
-/********************************/
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*               FIXED HEADER              */
+/*                                         */
+/*******************************************/
 
 //====================CONTROL PACKET====================
 
@@ -48,45 +50,107 @@
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
 
-//==========================================
+//================================================================================================================
 
-/*
-typedef int32_t utf_8;
 
-typedef struct twoBytestring {
-    int16_t size;
-    utf_8 *data;
-};
-
-typedef struct fourBytestring {
-    int32_t size;
-    utf_8 *data;
-};
-*/
-
-/*
-utf_8 number;
-if (0xd800 <= number && number <= 0xdfff) return false;
-
-if (number == 0) return false;
-*/
+/*******************************************/
+/*                                         */
+/*         CONNECT VARIABLE HEADER         */
+/*                                         */
+/*******************************************/
 
 typedef struct {
+    // 4
     uint16_t nameLenght;
+    // "MQTT"
     char name[4];
+    // 4 for 3 | 5 for 5
     uint8_t version;
+    // type of connection
     uint8_t connectFlags;
+    // the time in seconds between each user mqtt packet transmition
     uint16_t keepAlive;
-    uint8_t propertiesLenght;
-    uint8_t expiringIndentifier;
-    uint32_t expiringInterval;
 } variableHeader;
+
+/*******************************************/
+/*                                         */
+/*              CONNECT FLAGS              */
+/*                                         */
+/*******************************************/
+
+// 1 for new session 0 for existing sessing if there are no previus sessions
+#define CLEANSTART 0b00000010
+// 1 if the client wants to send others a message of a unespected disconection
+#define WILLFLAG   0b00000100
+// 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
+#define WILLQOS    0b00011000
+// if 1 the server must return the message as a retainable message
+#define WILLRETAIN 0b00100000
+// if set to 1 the payload has the password
+#define PASSWORD   0b01000000
+// if set to 1 the payload has the username
+#define UNSERNAME  0b10000000
+
+/*******************************************/
+/*                                         */
+/*                PROPERTY                 */
+/*                                   MQTT 5*/
+/*******************************************/
+
+typedef struct {
+    // the size of information of the property
+    uint8_t propertiesLenght;
+    // type of property
+    uint8_t property;
+    // information of property
+    uint8_t propertyData;
+} variableHeaderProperties;
+
+//
+#define SESSIONEXPIRING 0x11 // 17
+//
+#define RECIEVEMAXIMUM 0x21 // 21
+//
+#define MAXIMUNPACKETSIZE 0x27 // 29
+//
+#define TOPICALIASMAXIMU 0x22 // 34
+//
+#define REQUESTRESPONSEI 0x19 // 25
+//
+#define REQUESTPROBLEM 0x17 //23
+//
+#define USERPROPERTY 0x26 //38
+//
+#define AUTENTICATIONMETHOD 0x15 // 21
+//
+#define AUTENTICATIONDATA 0x16 //22
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*             CONNECT PAYLOAD             */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint16_t clientIDSize;
+    uint16_t willTopicSize;
+    uint16_t willMessageSize;
+    uint16_t userNameSize;
+    uint16_t passWordSize;
+} payload;
+
+//================================================================================================================
 
 typedef struct {
     uint8_t FIXEDHEADER;
     uint8_t remainingLength;
-    variableHeader VARIBALEHEADER;
-    uint8_t PAYLOAD;
+
+    // variable header
+
+    // payload
+    
 } mqttControlPacket;
 
 /*
