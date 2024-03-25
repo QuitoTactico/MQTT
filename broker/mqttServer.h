@@ -11,13 +11,53 @@
 
 //================================================================================================================
 
+/*
+    ====FIXE HEADER====
+
+    it is always in there
+
+    ====VARIABLE HEADER====
+
+    if (QOS > 0);
+
+    PUBLISH
+    PUBACK
+    PUBREC
+    PUBREL
+    PUBCOMP
+    SUBSCRIBE
+    SUBACK
+    UNSUBSCRIBE
+    UNSUBACK
+
+    ====PAYLOAD====
+
+    CONNECT     required
+    PUBLISH     optional
+    SUBSCRIBE   required
+    SUBACK      required
+    UNSUBSCRIBE required
+    UNSUBACK    required
+*/
+
+//================================================================================================================
+
 /*******************************************/
 /*                                         */
 /*               FIXED HEADER              */
 /*                                         */
 /*******************************************/
 
-//====================CONTROL PACKET====================
+typedef struct {
+    uint8_t fixedHeader;
+    uint16_t remainingLenght;
+} fixedHeader;
+
+/*******************************************/
+/*                                         */
+/*              CONTROL PACKET             */
+/*                                         */
+/*******************************************/
 
 #define CONNECT   0b00010000   // 1 || CONNECT     || CLIENT TO SERVER
 #define CONNACK   0b00100000   // 2 || CONNECT ACK || SERVER TO CLIENT
@@ -43,7 +83,11 @@
 #define DISCONNECT   0b11100000   // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
 #define AUTH         0b11110000   // 15 || AUTENTICATION EXCHANGE  || BOTH WAYS
 
-//====================FLAGS====================
+/*******************************************/
+/*                                         */
+/*                  FLAGS                  */
+/*                                         */
+/*******************************************/
 
 #define DUP    0b00000001 // DUPLICATE DELIVERY PUBLISH
 #define QOS    0b00000110 // PUBLISH CUALITY OF SERVICE
@@ -51,7 +95,6 @@
 
 
 //================================================================================================================
-
 
 /*******************************************/
 /*                                         */
@@ -70,7 +113,7 @@ typedef struct {
     uint8_t connectFlags;
     // the time in seconds between each user mqtt packet transmition
     uint16_t keepAlive;
-} variableHeader;
+} connectVariableHeader;
 
 /*******************************************/
 /*                                         */
@@ -96,7 +139,7 @@ typedef struct {
 /*                PROPERTY                 */
 /*                                   MQTT 5*/
 /*******************************************/
-
+/*
 typedef struct {
     // the size of information of the property
     uint8_t propertiesLenght;
@@ -104,7 +147,7 @@ typedef struct {
     uint8_t property;
     // information of property
     uint8_t propertyData;
-} variableHeaderProperties;
+} connectVariableHeaderProperties;
 
 //
 #define SESSIONEXPIRING 0x11 // 17
@@ -124,8 +167,7 @@ typedef struct {
 #define AUTENTICATIONMETHOD 0x15 // 21
 //
 #define AUTENTICATIONDATA 0x16 //22
-
-//================================================================================================================
+*/
 
 /*******************************************/
 /*                                         */
@@ -135,53 +177,66 @@ typedef struct {
 
 typedef struct {
     uint16_t clientIDSize;
+    char* clientID;
     uint16_t willTopicSize;
+    char* willTopic;
     uint16_t willMessageSize;
+    char* willMessage;
     uint16_t userNameSize;
+    char* userName
     uint16_t passWordSize;
-} payload;
+    char* passWord;
+} connectPayload;
 
 //================================================================================================================
 
+/*******************************************/
+/*                                         */
+/*         PUBLISH VARIABLE HEADER         */
+/*                                         */
+/*******************************************/
+
 typedef struct {
-    uint8_t FIXEDHEADER;
-    uint8_t remainingLength;
+    uint16_t topicSize;
+    char* topic;
+    uint16_t identifier;
+} publishVariableHeader;
 
-    // variable header
 
-    // payload
-    
-} mqttControlPacket;
+/*******************************************/
+/*                                         */
+/*             PUBLISH PAYLOAD             */
+/*                                         */
+/*******************************************/
 
-/*
-FIXE HEADER
+typedef struct {
+    uint16_t payloadSize;
+    char* data;
+} publishPayload;
 
-it is always in there
-*/
+//================================================================================================================
 
-/*
-    VARIABLE HEADER
+/*******************************************/
+/*                                         */
+/*        SUBSCRIBE VARIABLE HEADER        */
+/*                                         */
+/*******************************************/
 
-    if (QOS > 0);
+typedef struct {
+    uint16_t identifier;
+} subscribeVariableHeader;
 
-    PUBLISH
-    PUBACK
-    PUBREC
-    PUBREL
-    PUBCOMP
-    SUBSCRIBE
-    SUBACK
-    UNSUBSCRIBE
-    UNSUBACK
-*/
+/*******************************************/
+/*                                         */
+/*            SUBSCRIBE PAYLOAD            */
+/*                                         */
+/*******************************************/
 
-/*
-    PAYLOAD
+typedef struct {
+    uint16_t payloadSize;
+    char* topic;
+    uint8_t qos;
+} subscribePayload;
 
-    CONNECT     required
-    PUBLISH     optional
-    SUBSCRIBE   required
-    SUBACK      required
-    UNSUBSCRIBE required
-    UNSUBACK    required
-*/
+//================================================================================================================
+
