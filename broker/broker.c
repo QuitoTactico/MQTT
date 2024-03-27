@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    printf("conection accecpted\n\n");
+    printf("connection accepted\n\n");
     
     // prints the info of the server socket and the client socket
     if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
