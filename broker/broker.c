@@ -26,7 +26,12 @@ int main(int argc, char *argv[])
     printf("conection accecpted\n\n");
     
     // prints the info of the server socket and the client socket
-    printSocketInfo(sockfd, clientfd, &their_addr, addr_size);
+    if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
+    {
+        close(sockfd);
+        close(clientfd);
+        return 1;
+    }
 
     // print the info recieved by the client 
     char buf[1000];

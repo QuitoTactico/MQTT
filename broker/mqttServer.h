@@ -247,8 +247,15 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
+typedef struct {
+    int sockfd;
+    int clientfd;
+} SOCKET;
+
 // create the socket file descriptor with the ip, port and queue size
 int createSocket(char* port, char* ip, int queue);
 
 // prints the info of the server socket and the client socket
-void printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
+int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
+
+int handleRequest(void *args);

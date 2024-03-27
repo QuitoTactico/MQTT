@@ -1,5 +1,7 @@
 #include "mqttServer.h"
 
+mtx_t mutex;
+
 //================================================================================================================
 
 /*******************************************/
@@ -37,7 +39,7 @@ int createSocket(char* ip, char* port, int queue)
         return -1;
     }
 
-    // bind the socketfd to the port
+    // bind the socket file descriptor to the port
 
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) != 0)
     {
@@ -58,7 +60,7 @@ int createSocket(char* ip, char* port, int queue)
     return sockfd;
 }
 
-void printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size)
+int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size)
 {
     const int NAMESIZE = 100;
     char hostName[NAMESIZE];
@@ -77,8 +79,24 @@ void printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_ad
         perror("GET NAME INFO");
         close(sockfd);
         close(clientfd);
-        return 1;
+        return -1;
     }
 
     printf("ip conection from %s to %s\n", hostName, client_ip);
+}
+
+int handleRequest(void *args)
+{
+
+    SOCKET *sock = (SOCKET *)args;
+
+
+    
+    mtx_lock(&mutex);
+
+    
+
+    mtx_unlock(&mutex);
+
+    return 0;
 }
