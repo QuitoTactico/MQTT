@@ -7,7 +7,7 @@
 #include <netdb.h>
 
 #define MY_PORT "1883"
-#define MY_IP ""
+#define MY_IP "192.168.10.13"
 #define QUEUESIZE 10
 
 //================================================================================================================
@@ -18,8 +18,6 @@
     it is always in there
 
     ====VARIABLE HEADER====
-
-    if (QOS > 0);
 
     PUBLISH
     PUBACK
@@ -50,7 +48,7 @@
 /*******************************************/
 
 typedef struct {
-    uint8_t fixedHeader;
+    uint8_t messageType;
     uint16_t remainingLenght;
 } fixedHeader;
 
@@ -60,7 +58,7 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
-#define CONNECT   0b00010000   // 1 || CONNECT     || CLIENT TO SERVER
+#define CONNECT   0b00010000   // 1 || CONNECT     || CLIENT TO SERVER //
 #define CONNACK   0b00100000   // 2 || CONNECT ACK || SERVER TO CLIENT
 #define PUBLISH   0b00110000   // 3 || PUBLISH MESSAGE || BOTH WAYS
 #define PUBACK    0b01000000   // 4 || PUBLISH ACK     || BOTH WAYS
@@ -108,7 +106,7 @@ typedef struct {
     uint16_t nameLenght;
     // "MQTT"
     char name[4];
-    // 4 for 3 | 5 for 5
+    // 4 for 3.1 | 5 for 5
     uint8_t version;
     // type of connection
     uint8_t connectFlags;
@@ -123,17 +121,17 @@ typedef struct {
 /*******************************************/
 
 // 1 for new session 0 for existing sessing if there are no previus sessions
-#define CLEANSTART 0b00000010
+#define CLEANSTART  0b00000010
 // 1 if the client wants to send others a message of a unespected disconection
-#define WILLFLAG   0b00000100
+#define WILLFLAG    0b00000100
 // 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
-#define WILLQOS    0b00011000
+#define WILLQOS     0b00011000
 // if 1 the server must return the message as a retainable message
-#define WILLRETAIN 0b00100000
+#define WILLRETAIN  0b00100000
 // if set to 1 the payload has the password
-#define PASSWORD   0b01000000
+#define PASSWORD    0b01000000
 // if set to 1 the payload has the username
-#define UNSERNAME  0b10000000
+#define USERNAME    0b10000000
 
 /*******************************************/
 /*                                         */

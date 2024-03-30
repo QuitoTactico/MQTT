@@ -4,9 +4,12 @@ int main(int argc, char *argv[])
 {
     // create the socket file descriptor with the ip, port and queue size
     int sockfd = createSocket(NULL, MY_PORT, QUEUESIZE);
+    // create the socket file descriptor with the ip, port and queue size
+    int sockfd = createSocket(NULL, MY_PORT, QUEUESIZE);
 
     if (sockfd == -1)
     {
+        close(sockfd);
         close(sockfd);
         return 1;
     }
@@ -27,7 +30,13 @@ int main(int argc, char *argv[])
     
     // prints the info of the server socket and the client socket
     if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
+    printf("connection accepted\n\n");
+    
+    // prints the info of the server socket and the client socket
+    if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
     {
+        close(sockfd);
+        close(clientfd);
         close(sockfd);
         close(clientfd);
         return 1;
@@ -35,6 +44,7 @@ int main(int argc, char *argv[])
 
     // print the info recieved by the client 
     char buf[1000];
+    int len = 1000; 
     int len = 1000; 
 
     while(buf[0] != 'q')
@@ -47,7 +57,14 @@ int main(int argc, char *argv[])
         {
             memset(&buf, 0, len);
         }
+
+        if(buf[0] != 'q')
+        {
+            memset(&buf, 0, len);
+        }
     }
+    memset(&buf, 0, len);
+    
     memset(&buf, 0, len);
     
     close(sockfd);
