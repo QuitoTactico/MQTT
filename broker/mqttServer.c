@@ -89,7 +89,7 @@ int handleRequest(void *args)
 
     SOCKET *sock = (SOCKET *)args;
 
-
+    
     
     mtx_lock(&mutex);
 
@@ -98,4 +98,86 @@ int handleRequest(void *args)
     mtx_unlock(&mutex);
 
     return 0;
+}
+
+int handleRecv(void *args)
+{
+    int sockfd = *(int *)args;
+
+    // accept one connection and write the info of the connected client and create its file descriptor
+    struct sockaddr_storage their_addr;
+    socklen_t addr_size = sizeof(their_addr);
+
+    int clientfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+
+    if (clientfd == -1)
+    {
+        perror("ACCEPT");
+        return 1;
+    }
+
+    printf("connection accepted\n\n");
+    
+    // prints the info of the server socket and the client socket
+    if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
+    {
+        close(clientfd);
+        return 1;
+    }
+
+    // print the info recieved by the client 
+    char buf[1000];
+    int len = 1000; 
+
+    while(buf[0] != 'q')
+    {
+        recv(clientfd, buf, len, 0);
+
+        mtx_lock(&mutex);
+
+        printf("info del cliente %d:\n\n%s\n\n", clientfd, buf);
+
+        mtx_unlock(&mutex);
+        
+        if(buf[0] != 'q')
+        {
+            memset(&buf, 0, len);
+        }
+    }
+    memset(&buf, 0, len);
+    
+    close(clientfd);
+
+    return 0;
+}
+
+char quit[5];
+int stop = 1;
+
+int handleServer(void* args)
+{
+    while (1) {
+        printf("Enter 'quit' to exit: ");
+        fgets(quit, sizeof(quit), stdin);
+        // Remove newline character if present
+        quit[strcspn(quit, "\n")] = 0;
+
+        // Convert quit to lowercase for case-insensitive comparison
+        for (int i = 0; quit[i]; i++) {
+            quit[i] = tolower(quit[i]);
+        }
+
+        if (strcmp(quit, "quit") == 0) {
+            stop = 0;
+            printf("Exiting...\n");
+            break;
+        }
+    }
+
+    return 0;
+}
+
+int close_server()
+{
+    return stop;
 }

@@ -11,47 +11,28 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // accept one connection and write the info of the connected client and create its file descriptor
-    struct sockaddr_storage their_addr;
-    socklen_t addr_size = sizeof(their_addr);
+    thrd_t server;
+    int res;
 
-    int clientfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+    thrd_create(&server, handleServer, 0);
 
-    if (clientfd == -1)
+    while (close_server())
     {
-        perror("ACCEPT");
-        return 1;
-    }
+        thrd_t t[QUEUESIZE];
 
-    printf("connection accepted\n\n");
-    
-    // prints the info of the server socket and the client socket
-    if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
-    {
-        close(sockfd);
-        close(clientfd);
-        return 1;
-    }
+        for (int i = 0; i < QUEUESIZE; i++) thrd_create(t + i, handleRecv, &sockfd);
 
-    // print the info recieved by the client 
-    char buf[1000];
-    int len = 1000; 
-
-    while(buf[0] != 'q')
-    {
-        recv(clientfd, buf, len, 0);
-
-        printf("info del cliente:\n\n%s\n\n", buf);
-
-        if(buf[0] != 'q')
+        for (int i = 0; i < QUEUESIZE; i++)
         {
-            memset(&buf, 0, len);
+            int res;
+            thrd_join(t[i], &res);
+            if (res == -1) printf("error");
         }
     }
-    memset(&buf, 0, len);
     
+    thrd_join(server, &res);
+
     close(sockfd);
-    close(clientfd);
 
     return 0;
 }

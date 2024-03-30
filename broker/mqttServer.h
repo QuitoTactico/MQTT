@@ -5,10 +5,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <ctype.h>
 
 #define MY_PORT "1883"
 #define MY_IP "192.168.10.13"
-#define QUEUESIZE 10
+#define QUEUESIZE 1
 
 //================================================================================================================
 
@@ -191,6 +192,38 @@ typedef struct {
 
 /*******************************************/
 /*                                         */
+/*         CONNACK VARIABLE HEADER         */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint8_t flags;
+    uint8_t returnCode;
+} connackVariableHeader;
+
+/*
+if flags is set to 1, accept the connection
+
+if flags is set to 1, return code:
+*/
+
+/*******************************************/
+/*                                         */
+/*           CONNECT RETURN CODE           */
+/*                                         */
+/*******************************************/
+
+#define ACCEPTED                0b00000000
+#define REFUSED_VERSION         0b00000001
+#define REFUSED_IDENTIFIER      0b00000010
+#define REFUSED_SERVER_DOWN     0b00000011
+#define REFUSED_WRONG_USER_PASS 0b00000100
+#define REFUSED_NOT_AUTHORIZED  0b00000101
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
 /*         PUBLISH VARIABLE HEADER         */
 /*                                         */
 /*******************************************/
@@ -257,3 +290,9 @@ int createSocket(char* port, char* ip, int queue);
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
 
 int handleRequest(void *args);
+
+int handleRecv(void *args);
+
+int handleServer(void *args);
+
+int close_server();
