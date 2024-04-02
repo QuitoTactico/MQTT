@@ -5,10 +5,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <ctype.h>
 
 #define MY_PORT "1883"
 #define MY_IP "192.168.10.13"
-#define QUEUESIZE 10
+#define QUEUESIZE 1
 
 //================================================================================================================
 
@@ -58,6 +59,8 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
+#define FIXED   0b11110000
+
 #define CONNECT   0b00010000   // 1 || CONNECT     || CLIENT TO SERVER //
 #define CONNACK   0b00100000   // 2 || CONNECT ACK || SERVER TO CLIENT
 #define PUBLISH   0b00110000   // 3 || PUBLISH MESSAGE || BOTH WAYS
@@ -77,10 +80,9 @@ typedef struct {
 #define UNSUBACK     0b10110000   // 11 || UNSUBSCRIBE ACK     || SERVER TO CLIENT
 #define PINGREQ      0b11000000   // 12 || PING REQUEST  || CLIENT TO SERVER
 #define PINGRESP     0b11010000   // 13 || PING RESPONSE || SERVER TO CLIENT
-//************
-
 #define DISCONNECT   0b11100000   // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
 #define AUTH         0b11110000   // 15 || AUTENTICATION EXCHANGE  || BOTH WAYS
+//************
 
 /*******************************************/
 /*                                         */
@@ -92,6 +94,7 @@ typedef struct {
 #define QOS    0b00000110 // PUBLISH CUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
+void handleFixedHeader(char *args);
 
 //================================================================================================================
 
@@ -135,41 +138,6 @@ typedef struct {
 
 /*******************************************/
 /*                                         */
-/*                PROPERTY                 */
-/*                                   MQTT 5*/
-/*******************************************/
-/*
-typedef struct {
-    // the size of information of the property
-    uint8_t propertiesLenght;
-    // type of property
-    uint8_t property;
-    // information of property
-    uint8_t propertyData;
-} connectVariableHeaderProperties;
-
-//
-#define SESSIONEXPIRING 0x11 // 17
-//
-#define RECIEVEMAXIMUM 0x21 // 21
-//
-#define MAXIMUNPACKETSIZE 0x27 // 29
-//
-#define TOPICALIASMAXIMU 0x22 // 34
-//
-#define REQUESTRESPONSEI 0x19 // 25
-//
-#define REQUESTPROBLEM 0x17 //23
-//
-#define USERPROPERTY 0x26 //38
-//
-#define AUTENTICATIONMETHOD 0x15 // 21
-//
-#define AUTENTICATIONDATA 0x16 //22
-*/
-
-/*******************************************/
-/*                                         */
 /*             CONNECT PAYLOAD             */
 /*                                         */
 /*******************************************/
@@ -186,6 +154,36 @@ typedef struct {
     uint16_t passWordSize;
     char* passWord;
 } connectPayload;
+
+void handleConnect(char* args);
+connectPayload readConnectPayload(char* args);
+void freeConnectPayload(connectPayload* payload);
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*         CONNACK VARIABLE HEADER         */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint8_t flags;
+    uint8_t returnCode;
+} connackVariableHeader;
+
+/*******************************************/
+/*                                         */
+/*           CONNECT RETURN CODE           */
+/*                                         */
+/*******************************************/
+
+#define ACCEPTED                0b00000000
+#define REFUSED_VERSION         0b00000001
+#define REFUSED_IDENTIFIER      0b00000010
+#define REFUSED_SERVER_DOWN     0b00000011
+#define REFUSED_WRONG_USER_PASS 0b00000100
+#define REFUSED_NOT_AUTHORIZED  0b00000101
 
 //================================================================================================================
 
@@ -213,6 +211,20 @@ typedef struct {
     char* data;
 } publishPayload;
 
+void handlePublish(char* args);
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*          PUBACK VARIABLE HEADER         */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint16_t identifier;
+} pubackVariableHeader;
+
 //================================================================================================================
 
 /*******************************************/
@@ -237,6 +249,20 @@ typedef struct {
     uint8_t qos;
 } subscribePayload;
 
+void handleSubscribe(char* args);
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*         SUBACK VARIABLE HEADER          */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint16_t identifier;
+} subackbeVariableHeader;
+
 //================================================================================================================
 
 /*******************************************/
@@ -257,3 +283,9 @@ int createSocket(char* port, char* ip, int queue);
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
 
 int handleRequest(void *args);
+
+int handleRecv(void *args);
+
+int handleServer(void *args);
+
+int close_server();
