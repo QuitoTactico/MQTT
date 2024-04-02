@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
         if (strcmp(answer, "connect") == 0)
         {
-            readConnectPayload();
+            readConnectPayload(sockfd);
         }
         else if (strcmp(answer, "publish") == 0)
         {

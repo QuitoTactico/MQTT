@@ -8,7 +8,7 @@
 #include <netdb.h>
 
 #define MY_PORT "1883"
-#define MY_IP "192.168.10.13"
+#define MY_IP "192.168.30.142"
 #define QUEUESIZE 10
 
 //================================================================================================================
@@ -153,7 +153,7 @@ typedef struct {
     char* passWord;
 } connectPayload;
 
-void readConnectPayload();
+void readConnectPayload(int sockfd);
 
 //================================================================================================================
 

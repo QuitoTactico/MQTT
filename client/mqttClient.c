@@ -1,6 +1,6 @@
 #include "mqttClient.h"
 
-void readConnectPayload()
+void readConnectPayload(int sockfd)
 {
     char answer[20];
     char message[500];
@@ -122,6 +122,7 @@ void readConnectPayload()
             strcat(&message[10], "00");
         }
     }
+    send(sockfd, message, 500, 0);
 }
 int createSocket(char *ip, char *port, int queue)
 {
