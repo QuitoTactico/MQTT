@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <threads.h>
@@ -7,7 +8,7 @@
 #include <netdb.h>
 
 #define MY_PORT "1883"
-#define MY_IP "192.168.10.13"
+#define MY_IP "192.168.30.142"
 #define QUEUESIZE 10
 
 //================================================================================================================
@@ -135,41 +136,6 @@ typedef struct {
 
 /*******************************************/
 /*                                         */
-/*                PROPERTY                 */
-/*                                   MQTT 5*/
-/*******************************************/
-/*
-typedef struct {
-    // the size of information of the property
-    uint8_t propertiesLenght;
-    // type of property
-    uint8_t property;
-    // information of property
-    uint8_t propertyData;
-} connectVariableHeaderProperties;
-
-//
-#define SESSIONEXPIRING 0x11 // 17
-//
-#define RECIEVEMAXIMUM 0x21 // 21
-//
-#define MAXIMUNPACKETSIZE 0x27 // 29
-//
-#define TOPICALIASMAXIMU 0x22 // 34
-//
-#define REQUESTRESPONSEI 0x19 // 25
-//
-#define REQUESTPROBLEM 0x17 //23
-//
-#define USERPROPERTY 0x26 //38
-//
-#define AUTENTICATIONMETHOD 0x15 // 21
-//
-#define AUTENTICATIONDATA 0x16 //22
-*/
-
-/*******************************************/
-/*                                         */
 /*             CONNECT PAYLOAD             */
 /*                                         */
 /*******************************************/
@@ -186,6 +152,8 @@ typedef struct {
     uint16_t passWordSize;
     char* passWord;
 } connectPayload;
+
+void readConnectPayload(int sockfd);
 
 //================================================================================================================
 
