@@ -217,7 +217,7 @@ int createSocket(char* ip, char* port, int queue)
 
     if (getaddrinfo(ip, port, &hints, &res) != 0)
     {
-        perror("GET ADDRESS INFO");
+        perror("GET ADDRES INFO");
         return -1;
     }
 
@@ -261,11 +261,12 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_add
     memset(&hostName, 0, NAMESIZE);
     char serviceName[NAMESIZE];
     memset(&serviceName, 0, NAMESIZE);
-    int flags = NI_NUMERICHOST + NI_NUMERICSERV; //Traducción del host a número normal (192)
+    int flags = NI_NUMERICHOST + NI_NUMERICSERV;
 
+    struct sockaddr *client_ptr = (struct sockaddr *)their_addr;
     char client_ip[INET6_ADDRSTRLEN];
 
-    inet_ntop(AF_INET, &((struct sockaddr_in *)their_addr)->sin_addr, client_ip, sizeof(client_ip));
+    inet_ntop(their_addr->ss_family, &((struct sockaddr_in *)client_ptr)->sin_addr, client_ip, sizeof(client_ip));
 
     if (getnameinfo((struct sockaddr *)their_addr, addr_size, hostName, NAMESIZE, serviceName, NAMESIZE, flags) == -1)
     {
