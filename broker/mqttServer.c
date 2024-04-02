@@ -73,7 +73,7 @@ void handleConnect(char* args)
 
     connectPayload payload = readConnectPayload(args);
 
-
+    printf("%s", payload.userName);
 
     freeConnectPayload(&payload);
 }
