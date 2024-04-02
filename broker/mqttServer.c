@@ -14,6 +14,8 @@ void handleFixedHeader(char *args)
 
     memcpy(&header, args, sizeof(header));
 
+    handleConnect(args);
+
     switch (header.messageType & FIXED)
     {
         case CONNECT:
@@ -26,7 +28,7 @@ void handleFixedHeader(char *args)
             handleSubscribe(args);
             break;
         default:
-            printf("error\nerror\nerror");
+            printf("wrong header\n\n");
             break;
     }
 }
@@ -73,7 +75,7 @@ void handleConnect(char* args)
 
     connectPayload payload = readConnectPayload(args);
 
-    printf("%s", payload.userName);
+    printf("SIUUUUUUUUUU: %s\n", payload.userName);
 
     freeConnectPayload(&payload);
 }
@@ -94,7 +96,7 @@ connectPayload readConnectPayload(char* args)
 
     payload.clientID = (char *)malloc(payload.clientIDSize);
 
-    memcpy(payload.clientID, offset, payload.clientIDSize);
+    memcpy(payload.clientID, args + offset, payload.clientIDSize);
 
     offset += payload.clientIDSize;
 
@@ -108,7 +110,7 @@ connectPayload readConnectPayload(char* args)
 
     payload.willTopic = (char *)malloc(payload.willTopicSize);
 
-    memcpy(payload.willTopic, offset, payload.willTopicSize);
+    memcpy(payload.willTopic, args + offset, payload.willTopicSize);
 
     offset += payload.willTopicSize;
 
@@ -122,7 +124,7 @@ connectPayload readConnectPayload(char* args)
 
     payload.willMessage = (char *)malloc(payload.willMessageSize);
 
-    memcpy(payload.willMessage, offset, payload.willMessageSize);
+    memcpy(payload.willMessage, args + offset, payload.willMessageSize);
 
     offset += payload.willMessageSize;
 
@@ -136,7 +138,7 @@ connectPayload readConnectPayload(char* args)
 
     payload.userName = (char *)malloc(payload.userNameSize);
 
-    memcpy(payload.userName, offset, payload.userNameSize);
+    memcpy(payload.userName, args + offset, payload.userNameSize);
 
     offset += payload.userNameSize;
 
@@ -150,7 +152,7 @@ connectPayload readConnectPayload(char* args)
 
     payload.passWord = (char *)malloc(payload.passWordSize);
 
-    memcpy(payload.passWord, offset, payload.passWordSize);
+    memcpy(payload.passWord, args + offset, payload.passWordSize);
 
     offset += payload.passWordSize;
 
@@ -159,11 +161,11 @@ connectPayload readConnectPayload(char* args)
 
 void freeConnectPayload(connectPayload* payload)
 {
-    free(payload.clientID);
-    free(payload.willTopic);
-    free(payload.willMessage);
-    free(payload.userName);
-    free(payload.passWord);
+    free(payload->clientID);
+    free(payload->willTopic);
+    free(payload->willMessage);
+    free(payload->userName);
+    free(payload->passWord);
 }
 
 //================================================================================================================
@@ -325,12 +327,14 @@ int handleRecv(void *args)
     {
         recv(clientfd, buf, len, 0);
 
-        printf("info del cliente %d:\n\n%s\n\n", clientfd, buf);
+        printf("info del cliente %d:\n\n%s\n", clientfd, buf);
         
         if(buf[0] != 'q')
         {
             memset(&buf, 0, len);
         }
+
+        handleFixedHeader(buf);
     }
     memset(&buf, 0, len);
     

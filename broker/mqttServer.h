@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <threads.h>
@@ -8,7 +9,7 @@
 #include <ctype.h>
 
 #define MY_PORT "1883"
-#define MY_IP "192.168.10.13"
+#define MY_IP ""
 #define QUEUESIZE 1
 
 //================================================================================================================
