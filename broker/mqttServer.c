@@ -1,6 +1,194 @@
 #include "mqttServer.h"
 
-mtx_t mutex;
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*               FIXED HEADER              */
+/*                                         */
+/*******************************************/
+
+void handleFixedHeader(char *args)
+{
+    fixedHeader header;
+
+    memcpy(&header, args, sizeof(header));
+
+    switch (header.messageType & FIXED)
+    {
+        case CONNECT:
+            handleConnect(args);
+            break;
+        case PUBLISH:
+            handlePublish(args);
+            break;
+        case SUBSCRIBE:
+            handleSubscribe(args);
+            break;
+        default:
+            printf("error\nerror\nerror");
+            break;
+    }
+}
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*                 CONNECT                 */
+/*                                         */
+/*******************************************/
+
+void handleConnect(char* args)
+{
+    int offset = sizeof(fixedHeader);
+    connectVariableHeader variable;
+    memcpy(&variable, args + offset, sizeof(connectVariableHeader));
+    offset += sizeof(connectVariableHeader);
+
+    if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
+    {
+
+    }
+    if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
+    {
+
+    }
+    if ((variable.connectFlags & WILLQOS) == WILLQOS)
+    {
+
+    }
+    if ((variable.connectFlags & WILLRETAIN) == WILLRETAIN)
+    {
+
+    }
+    if ((variable.connectFlags & PASSWORD) == PASSWORD)
+    {
+
+    }
+    if ((variable.connectFlags & USERNAME) == USERNAME)
+    {
+
+    }
+
+    connectPayload payload = readConnectPayload(args);
+
+    freeConnectPayload(&payload);
+}
+
+void readConnectPayload(char* args)
+{
+    int offset = sizeof(fixedHeader) + sizeof(connectVariableHeader);
+
+    connectPayload payload;
+
+    //========client id size========
+
+    memcpy(&payload.clientIDSize, args + offset, sizeof(uint16_t));
+
+    offset += sizeof(uint16_t);
+
+    //========client id========
+
+    payload.clientID = (char *)malloc(payload.clientIDSize);
+
+    memcpy(payload.clientID, offset, payload.clientIDSize);
+
+    offset += payload.clientIDSize;
+
+    //========will topic size========
+
+    memcpy(&payload.willTopicSize, args + offset, sizeof(uint16_t));
+
+    offset += sizeof(uint16_t);
+
+    //========will topic========
+
+    payload.willTopic = (char *)malloc(payload.willTopicSize);
+
+    memcpy(payload.willTopic, offset, payload.willTopicSize);
+
+    offset += payload.willTopicSize;
+
+    //========will message size========
+
+    memcpy(&payload.willMessageSize, args + offset, sizeof(uint16_t));
+
+    offset += sizeof(uint16_t);
+
+    //========will message========
+
+    payload.willMessage = (char *)malloc(payload.willMessageSize);
+
+    memcpy(payload.willMessage, offset, payload.willMessageSize);
+
+    offset += payload.willMessageSize;
+
+    //========name size========
+
+    memcpy(&payload.userNameSize, args + offset, sizeof(uint16_t));
+
+    offset += sizeof(uint16_t);
+
+    //========name========
+
+    payload.userName = (char *)malloc(payload.userNameSize);
+
+    memcpy(payload.userName, offset, payload.userNameSize);
+
+    offset += payload.userNameSize;
+
+    //========password size========
+
+    memcpy(&payload.passWordSize, args + offset, sizeof(uint16_t));
+
+    offset += sizeof(uint16_t);
+
+    //========password========
+
+    payload.passWord = (char *)malloc(payload.passWordSize);
+
+    memcpy(payload.passWord, offset, payload.passWordSize);
+
+    offset += payload.passWordSize;
+
+    return payload;
+}
+
+void freeConnectPayload(connectPayload* payload)
+{
+    free(payload.clientID);
+    free(payload.willTopic);
+    free(payload.willMessage);
+    free(payload.userName);
+    free(payload.passWord);
+}
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*                 PUBLISH                 */
+/*                                         */
+/*******************************************/
+
+void handlePublish(char* args)
+{
+
+}
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*            SUBSCRIBE PAYLOAD            */
+/*                                         */
+/*******************************************/
+
+void handleSubscribe(char* args)
+{
+
+}
 
 //================================================================================================================
 
@@ -9,6 +197,8 @@ mtx_t mutex;
 /*                 SOCKET                  */
 /*                                         */
 /*******************************************/
+
+mtx_t mutex;
 
 int createSocket(char* ip, char* port, int queue)
 {
@@ -133,11 +323,7 @@ int handleRecv(void *args)
     {
         recv(clientfd, buf, len, 0);
 
-        mtx_lock(&mutex);
-
         printf("info del cliente %d:\n\n%s\n\n", clientfd, buf);
-
-        mtx_unlock(&mutex);
         
         if(buf[0] != 'q')
         {

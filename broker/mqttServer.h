@@ -59,6 +59,8 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
+#define FIXED   0b11110000
+
 #define CONNECT   0b00010000   // 1 || CONNECT     || CLIENT TO SERVER //
 #define CONNACK   0b00100000   // 2 || CONNECT ACK || SERVER TO CLIENT
 #define PUBLISH   0b00110000   // 3 || PUBLISH MESSAGE || BOTH WAYS
@@ -78,10 +80,9 @@ typedef struct {
 #define UNSUBACK     0b10110000   // 11 || UNSUBSCRIBE ACK     || SERVER TO CLIENT
 #define PINGREQ      0b11000000   // 12 || PING REQUEST  || CLIENT TO SERVER
 #define PINGRESP     0b11010000   // 13 || PING RESPONSE || SERVER TO CLIENT
-//************
-
 #define DISCONNECT   0b11100000   // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
 #define AUTH         0b11110000   // 15 || AUTENTICATION EXCHANGE  || BOTH WAYS
+//************
 
 /*******************************************/
 /*                                         */
@@ -93,6 +94,7 @@ typedef struct {
 #define QOS    0b00000110 // PUBLISH CUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
+void handleFixedHeader(char *args);
 
 //================================================================================================================
 
@@ -136,41 +138,6 @@ typedef struct {
 
 /*******************************************/
 /*                                         */
-/*                PROPERTY                 */
-/*                                   MQTT 5*/
-/*******************************************/
-/*
-typedef struct {
-    // the size of information of the property
-    uint8_t propertiesLenght;
-    // type of property
-    uint8_t property;
-    // information of property
-    uint8_t propertyData;
-} connectVariableHeaderProperties;
-
-//
-#define SESSIONEXPIRING 0x11 // 17
-//
-#define RECIEVEMAXIMUM 0x21 // 21
-//
-#define MAXIMUNPACKETSIZE 0x27 // 29
-//
-#define TOPICALIASMAXIMU 0x22 // 34
-//
-#define REQUESTRESPONSEI 0x19 // 25
-//
-#define REQUESTPROBLEM 0x17 //23
-//
-#define USERPROPERTY 0x26 //38
-//
-#define AUTENTICATIONMETHOD 0x15 // 21
-//
-#define AUTENTICATIONDATA 0x16 //22
-*/
-
-/*******************************************/
-/*                                         */
 /*             CONNECT PAYLOAD             */
 /*                                         */
 /*******************************************/
@@ -188,6 +155,10 @@ typedef struct {
     char* passWord;
 } connectPayload;
 
+void handleConnect(char* args);
+connectPayload readConnectPayload(char* args);
+void freeConnectPayload(connectPayload* payload);
+
 //================================================================================================================
 
 /*******************************************/
@@ -200,12 +171,6 @@ typedef struct {
     uint8_t flags;
     uint8_t returnCode;
 } connackVariableHeader;
-
-/*
-if flags is set to 1, accept the connection
-
-if flags is set to 1, return code:
-*/
 
 /*******************************************/
 /*                                         */
@@ -246,6 +211,20 @@ typedef struct {
     char* data;
 } publishPayload;
 
+void handlePublish(char* args);
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*          PUBACK VARIABLE HEADER         */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint16_t identifier;
+} pubackVariableHeader;
+
 //================================================================================================================
 
 /*******************************************/
@@ -269,6 +248,20 @@ typedef struct {
     char* topic;
     uint8_t qos;
 } subscribePayload;
+
+void handleSubscribe(char* args);
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*         SUBACK VARIABLE HEADER          */
+/*                                         */
+/*******************************************/
+
+typedef struct {
+    uint16_t identifier;
+} subackbeVariableHeader;
 
 //================================================================================================================
 
