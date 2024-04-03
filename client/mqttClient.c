@@ -153,21 +153,7 @@ int createSocket(char *ip, char *port, int queue)
         return -1;
     }
 
-    // bind the socket file descriptor to the port
-
-    if (bind(sockfd, res->ai_addr, res->ai_addrlen) != 0)
-    {
-        perror("BINDING");
-        return -1;
-    }
-
-    // define the size of the queue to listen for incomming connections
-
-    if (listen(sockfd, QUEUESIZE) != 0)
-    {
-        perror("LISTENING");
-        return -1;
-    }
+    connect(sockfd, (struct sockaddr *)res, sizeof(res));
 
     freeaddrinfo(res);
 
