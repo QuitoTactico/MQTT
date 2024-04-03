@@ -4,13 +4,9 @@ int main(int argc, char *argv[])
 {
     // create the socket file descriptor with the ip, port and queue size
     int sockfd = createSocket(NULL, MY_PORT, QUEUESIZE);
-    // create the socket file descriptor with the ip, port and queue size
-    int sockfd = createSocket(NULL, MY_PORT, QUEUESIZE);
 
     if (sockfd == -1)
     {
-        close(sockfd);
-        close(sockfd);
         return 1;
     }
 
