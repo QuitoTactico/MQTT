@@ -1,9 +1,8 @@
 #include "mqttClient.h"
 
-void readConnectPayload(int sockfd)
+void readConnectPayload(int sockfd, char *message)
 {
     char answer[20];
-    char message[500];
     char anssession[50];
 
     char uniqueID[23];
@@ -28,6 +27,10 @@ void readConnectPayload(int sockfd)
     ssize_t readuser;
     uint16_t len_user;
 
+    message[0] = CONNECT;
+    message[1] = 0;
+    message[2] = 50;
+
     // In the first three bytes there´s reserved space for the fixed header
     message[3] = 0;
     message[4] = 4;
@@ -36,6 +39,7 @@ void readConnectPayload(int sockfd)
     message[7] = 'T';
     message[8] = 'T';
     message[9] = 4;
+    
     printf("Do you have a created session?: ");
     scanf("%s", anssession);
 
@@ -46,10 +50,10 @@ void readConnectPayload(int sockfd)
         scanf("%s", uniqueID);
         len_uniqueID = strlen(uniqueID);
         getchar();                                   // Consume the newline character that´s still in the buffer from the previous scanf
-        strcpy(&message[10], (char *)&len_uniqueID); // Concatenate the length to the message
-        strcat(&message[10], uniqueID);              // Concatenate the uniqueID to the message
+        strcpy(&message[13], (char *)&len_uniqueID); // Concatenate the length to the message
+        strcat(&message[13], uniqueID);              // Concatenate the uniqueID to the message
         printf("The length of the ID is: %zu\n", strlen(uniqueID));
-        // printf("The message is: %s\n", &message[10]); // Testing
+        // printf("The message is: %s\n", &message[13]); // Testing
 
         printf("Do you want to leave the will flag: ");
         scanf("%s", answerWill);
@@ -66,8 +70,12 @@ void readConnectPayload(int sockfd)
                 topic[strcspn(topic, "\n")] = 0; // Remove the newline character from the topic
                 len_topic = longitud;            // Pointer to hold the length as a string
                 // sprintf(len_topic, "%zu", strlen(topic));               // Convert the length to a string
-                strcat(&message[10], (char *)&len_topic); // Concatenate the length to the message
-                strcat(&message[10], topic);              // Concatenate the topic to the message
+
+                //char i[2];
+                //sprintf(i, "%hu", len_topic);
+                //strcat(&message[13], i); // Concatenate the length to the message
+                strcat(&message[13], (char *)&len_topic);
+                strcat(&message[13], topic);              // Concatenate the topic to the message
                 free(topic);
             }
             printf("Will message:");
@@ -79,8 +87,12 @@ void readConnectPayload(int sockfd)
                 printf("The length of the message is: %zu\n", strlen(messagewill));
                 messagewill[strcspn(messagewill, "\n")] = 0;
                 len_message = longitud;
-                strcat(&message[10], (char *)&len_message); // Concatenate the length to the message
-                strcat(&message[10], messagewill);          // Concatenate the message to the message
+
+                //char i[2];
+                //sprintf(i, "%hu", len_message);
+                //strcat(&message[13], i); // Concatenate the length to the message
+                strcat(&message[13], (char *)&len_message); // Concatenate the length to the message
+                strcat(&message[13], messagewill);          // Concatenate the message to the message
                 free(messagewill);
             }
 
@@ -94,8 +106,11 @@ void readConnectPayload(int sockfd)
                 username[strcspn(username, "\n")] = 0;
                 len_user = longitud;
 
-                strcat(&message[10], (char *)&len_user); // Concatenate the length to the message
-                strcat(&message[10], username);          // Concatenate the message to the message
+                //char i[2];
+                //sprintf(i, "%hu", len_user);
+                //strcat(&message[13], i); // Concatenate the length to the message
+                strcat(&message[13], (char *)&len_user); // Concatenate the length to the message
+                strcat(&message[13], username);          // Concatenate the message to the message
                 free(username);
             }
 
@@ -109,22 +124,25 @@ void readConnectPayload(int sockfd)
                 password[strcspn(password, "\n")] = 0; // Remove the newline character from the password
                 len_pass = longitud;
 
-                strcat(&message[10], (char *)&len_pass); // Concatenate the length to the message
-                strcat(&message[10], password);          // Concatenate the message to the message
+                //char i[2];
+                //sprintf(i, "%hu", len_pass);
+                //strcat(&message[13], i); // Concatenate the length to the message
+                strcat(&message[13], (char *)&len_pass); // Concatenate the length to the message
+                strcat(&message[13], password);          // Concatenate the message to the message
                 free(password);
             }
             // concatenate the topic and the message to the message variable
-            printf("The message is: %s", &message[10]); // Testing
+            printf("The message is: %s", message); // Testing
+            //send(sockfd, message, strlen(message), 0);
         }
         else
         {
             // that is the section that the server must discard any previous session information
-            strcat(&message[10], "00");
+            strcat(&message[13], "00");
         }
     }
-    send(sockfd, message, 500, 0);
 }
-int createSocket(char *ip, char *port, int queue)
+int connectSocket(char *ip, char *port, int queue)
 {
     struct addrinfo hints, *res;
 
@@ -153,7 +171,7 @@ int createSocket(char *ip, char *port, int queue)
         return -1;
     }
 
-    connect(sockfd, (struct sockaddr *)res, sizeof(res));
+    connect(sockfd, res->ai_addr, res->ai_addrlen);
 
     freeaddrinfo(res);
 

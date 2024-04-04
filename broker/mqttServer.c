@@ -46,11 +46,10 @@ void handleConnect(char* args)
     int offset = sizeof(fixedHeader);
     connectVariableHeader variable;
     memcpy(&variable, args + offset, sizeof(connectVariableHeader));
-    offset += sizeof(connectVariableHeader);
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
-
+    offset += sizeof(connectVariableHeader);
     }
     if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
     {
@@ -78,6 +77,8 @@ void handleConnect(char* args)
     printf("SIUUUUUUUUUU: %s\n", payload.userName);
 
     freeConnectPayload(&payload);
+
+    memset(&payload, 0, sizeof(connectPayload));
 }
 
 connectPayload readConnectPayload(char* args)
@@ -94,7 +95,9 @@ connectPayload readConnectPayload(char* args)
 
     //========client id========
 
-    payload.clientID = (char *)malloc(payload.clientIDSize);
+    do {
+        payload.clientID = (char *)malloc(payload.clientIDSize);
+    }while(payload.clientID == NULL);
 
     memcpy(payload.clientID, args + offset, payload.clientIDSize);
 
@@ -263,11 +266,6 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_add
     memset(&serviceName, 0, NAMESIZE);
     int flags = NI_NUMERICHOST + NI_NUMERICSERV;
 
-    struct sockaddr *client_ptr = (struct sockaddr *)their_addr;
-    char client_ip[INET6_ADDRSTRLEN];
-
-    inet_ntop(their_addr->ss_family, &((struct sockaddr_in *)client_ptr)->sin_addr, client_ip, sizeof(client_ip));
-
     if (getnameinfo((struct sockaddr *)their_addr, addr_size, hostName, NAMESIZE, serviceName, NAMESIZE, flags) == -1)
     {
         perror("GET NAME INFO");
@@ -276,7 +274,7 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_add
         return -1;
     }
 
-    printf("ip conection from %s to %s\n", hostName, client_ip);
+    printf("ip conection from %s with port %s\n", hostName, serviceName);
 }
 
 int handleRequest(void *args)
@@ -330,14 +328,16 @@ int handleRecv(void *args)
 
         printf("info del cliente %d:\n\n%s\n", clientfd, buf);
         
-        if(buf[0] != 'q')
-        {
-            memset(&buf, 0, len);
-        }
+        if(buf[0] == 'q') break;
 
         handleFixedHeader(buf);
+
+        memset(buf, 0, len);
     }
-    memset(&buf, 0, len);
+
+    printf("client gone\n");
+
+    memset(buf, 0, len);
     
     close(clientfd);
 

@@ -1,6 +1,8 @@
 INTRODUCCION
 
+gcc broker.c mqttServer.c -o broker
 
+gcc client.c mqttClient.c -o cliente
 
 DESARROLLO
 
