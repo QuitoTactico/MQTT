@@ -2,84 +2,77 @@
 
 void readConnectPayload(int sockfd, char *message)
 {
-    char answer[20];
-    char anssession[50];
-
-    char uniqueID[23];
-    uint16_t len_uniqueID;
-
-    char answerWill[20];
-    // undefined lengths for the topic, message and password and user
-    uint16_t len_topic; // Pointer to hold the length as a string
-    char *topic = NULL;
-    size_t longitud = 0;
-    ssize_t readtopic;
-
-    char *messagewill = NULL;
-    ssize_t readmessage;
-    uint16_t len_message;
-
-    char *password = NULL;
-    ssize_t readpassword;
-    uint16_t len_pass;
-
-    char *username = NULL;
-    ssize_t readuser;
-    uint16_t len_user;
-
+    // FIXED HEADER
     message[0] = CONNECT;
-    message[1] = 0;
-    message[2] = 50;
+    message[1] = 1;
+    message[2] = 10;
 
-    // In the first three bytes there´s reserved space for the fixed header
-    message[3] = 0;
+    // VARIABLE HEADER
+    message[3] = 1;
     message[4] = 4;
     message[5] = 'M';
     message[6] = 'Q';
     message[7] = 'T';
     message[8] = 'T';
     message[9] = 4;
-    
-    printf("Do you have a created session?: ");
-    scanf("%s", anssession);
+    message[10] = 4;
+    message[11] = 4;
+    message[12] = 4;
 
-    // the user dont have a session, so, the server must create one and then, store it in the server to the next time the user connects
-    if (strcmp(anssession, "0") == 0)
+    char asnwer[50];
+    
+    printf("Do you have a created session (0 no | 1 yes): ");
+    scanf("%s", asnwer);
+
+    if (strcmp(asnwer, "0") == 0)
     {
+        char uniqueID[23];
+        uint16_t len_uniqueID;
+
         printf("ID: ");
         scanf("%s", uniqueID);
-        len_uniqueID = strlen(uniqueID);
-        getchar();                                   // Consume the newline character that´s still in the buffer from the previous scanf
-        strcpy(&message[13], (char *)&len_uniqueID); // Concatenate the length to the message
-        strcat(&message[13], uniqueID);              // Concatenate the uniqueID to the message
-        printf("The length of the ID is: %zu\n", strlen(uniqueID));
-        // printf("The message is: %s\n", &message[13]); // Testing
 
-        printf("Do you want to leave the will flag: ");
+        len_uniqueID = strlen(uniqueID);
+        getchar();
+
+        strcpy(&message[13], (char *)&len_uniqueID);
+        strcat(&message[13], uniqueID);
+        printf("The length of the ID is: %zu\n", strlen(uniqueID));
+
+        char answerWill[20];
+        printf("Do you want to leave the will flag (0 no | 1 yes): ");
         scanf("%s", answerWill);
-        if (strcmp(answerWill, "0") == 0)
+        size_t longitud = 0;
+        if (strcmp(answerWill, "1") == 0)
         {
+            ssize_t readtopic;
+            char *topic;
+
             printf("Will topic:");
-            getchar(); // Consume the newline character that´s still in the buffer from the previous scanf
+            getchar();
             readtopic = getline(&topic, &longitud, stdin);
 
             if (readtopic != -1)
             {
+                uint16_t len_topic;
                 printf("You entered: %s", topic);
                 printf("The length of the message is: %zu\n", strlen(topic));
-                topic[strcspn(topic, "\n")] = 0; // Remove the newline character from the topic
-                len_topic = longitud;            // Pointer to hold the length as a string
-                // sprintf(len_topic, "%zu", strlen(topic));               // Convert the length to a string
+                topic[strcspn(topic, "\n")] = 0;
+                len_topic = longitud;
+                longitud = 0;
 
-                //char i[2];
-                //sprintf(i, "%hu", len_topic);
-                //strcat(&message[13], i); // Concatenate the length to the message
                 strcat(&message[13], (char *)&len_topic);
-                strcat(&message[13], topic);              // Concatenate the topic to the message
+                strcat(&message[13], topic);
                 free(topic);
             }
+
+            char *messagewill;
+            ssize_t readmessage;
+            uint16_t len_message;
+            longitud = 0;
+
             printf("Will message:");
-            readmessage = getline(&messagewill, &longitud, stdin); // the getline functions expects a pointer to a char pointer and a pointer to a size_t variable, that´s the reason why we use the & operator
+            readmessage = getline(&messagewill, &longitud, stdin);
 
             if (readmessage != -1)
             {
@@ -88,58 +81,55 @@ void readConnectPayload(int sockfd, char *message)
                 messagewill[strcspn(messagewill, "\n")] = 0;
                 len_message = longitud;
 
-                //char i[2];
-                //sprintf(i, "%hu", len_message);
-                //strcat(&message[13], i); // Concatenate the length to the message
-                strcat(&message[13], (char *)&len_message); // Concatenate the length to the message
-                strcat(&message[13], messagewill);          // Concatenate the message to the message
+                strcat(&message[13], (char *)&len_message);
+                strcat(&message[13], messagewill);
                 free(messagewill);
             }
-
-            printf("Username:");
-            readuser = getline(&username, &longitud, stdin); // Read the password
-
-            if (readuser != -1)
-            {
-                printf("You entered the username: %s", username);
-                printf("The length of the username is: %zu\n", strlen(username) - 1);
-                username[strcspn(username, "\n")] = 0;
-                len_user = longitud;
-
-                //char i[2];
-                //sprintf(i, "%hu", len_user);
-                //strcat(&message[13], i); // Concatenate the length to the message
-                strcat(&message[13], (char *)&len_user); // Concatenate the length to the message
-                strcat(&message[13], username);          // Concatenate the message to the message
-                free(username);
-            }
-
-            printf("Password:");
-            readpassword = getline(&password, &longitud, stdin); // Read the password
-
-            if (readpassword != -1)
-            {
-                printf("You entered the password: %s", password);
-                printf("The length of the password is: %zu\n", strlen(password));
-                password[strcspn(password, "\n")] = 0; // Remove the newline character from the password
-                len_pass = longitud;
-
-                //char i[2];
-                //sprintf(i, "%hu", len_pass);
-                //strcat(&message[13], i); // Concatenate the length to the message
-                strcat(&message[13], (char *)&len_pass); // Concatenate the length to the message
-                strcat(&message[13], password);          // Concatenate the message to the message
-                free(password);
-            }
-            // concatenate the topic and the message to the message variable
-            printf("The message is: %s", message); // Testing
-            //send(sockfd, message, strlen(message), 0);
         }
         else
         {
-            // that is the section that the server must discard any previous session information
-            strcat(&message[13], "00");
+            strcat(&message[13], "0000");
         }
+        char *username;
+        ssize_t readuser;
+        uint16_t len_user;
+        longitud = 0;
+
+        printf("Username:");
+        readuser = getline(&username, &longitud, stdin);
+
+        if (readuser != -1)
+        {
+            printf("You entered the username: %s", username);
+            printf("The length of the username is: %zu\n", strlen(username) - 1);
+            username[strcspn(username, "\n")] = 0;
+            len_user = longitud;
+
+            strcat(&message[13], (char *)&len_user);
+            strcat(&message[13], username);
+            free(username);
+        }
+
+        char *password = NULL;
+        ssize_t readpassword;
+        uint16_t len_pass;
+        longitud = 0;
+
+        printf("Password:");
+        readpassword = getline(&password, &longitud, stdin);
+
+        if (readpassword != -1)
+        {
+            printf("You entered the password: %s", password);
+            printf("The length of the password is: %zu\n", strlen(password));
+            password[strcspn(password, "\n")] = 0;
+            len_pass = longitud;
+
+            strcat(&message[13], (char *)&len_pass);
+            strcat(&message[13], password);
+            free(password);
+        }
+        printf("The message is: %s", message);
     }
 }
 int connectSocket(char *ip, char *port, int queue)
@@ -187,11 +177,6 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     memset(&serviceName, 0, NAMESIZE);
     int flags = NI_NUMERICHOST + NI_NUMERICSERV;
 
-    struct sockaddr *client_ptr = (struct sockaddr *)their_addr;
-    char client_ip[INET6_ADDRSTRLEN];
-
-    inet_ntop(their_addr->ss_family, &((struct sockaddr_in *)client_ptr)->sin_addr, client_ip, sizeof(client_ip));
-
     if (getnameinfo((struct sockaddr *)their_addr, addr_size, hostName, NAMESIZE, serviceName, NAMESIZE, flags) == -1)
     {
         perror("GET NAME INFO");
@@ -200,5 +185,5 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
         return -1;
     }
 
-    printf("ip conection from %s to %s\n", hostName, client_ip);
+    printf("ip conection from %s with port %s\n", hostName, serviceName);
 }

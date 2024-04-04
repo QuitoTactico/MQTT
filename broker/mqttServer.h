@@ -9,7 +9,7 @@
 #include <ctype.h>
 
 #define MY_PORT "1883"
-#define MY_IP "127.0.0.1"
+#define MY_IP "1270.1.0."
 #define QUEUESIZE 1
 
 //================================================================================================================
@@ -118,6 +118,8 @@ typedef struct {
     uint16_t keepAlive;
 } connectVariableHeader;
 
+#define SIZE_CONN_VAR sizeof(uint16_t)+(sizeof(char)*4)+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(uint16_t)
+
 /*******************************************/
 /*                                         */
 /*              CONNECT FLAGS              */
@@ -156,8 +158,8 @@ typedef struct {
     char* passWord;
 } connectPayload;
 
-void handleConnect(char* args);
-connectPayload readConnectPayload(char* args);
+void handleConnect(char* args, int offset);
+connectPayload readConnectPayload(char* args, int offset);
 void freeConnectPayload(connectPayload* payload);
 
 //================================================================================================================
@@ -212,7 +214,7 @@ typedef struct {
     char* data;
 } publishPayload;
 
-void handlePublish(char* args);
+void handlePublish(char* args, int offset);
 
 //================================================================================================================
 
@@ -250,7 +252,7 @@ typedef struct {
     uint8_t qos;
 } subscribePayload;
 
-void handleSubscribe(char* args);
+void handleSubscribe(char* args, int offset);
 
 //================================================================================================================
 
@@ -282,8 +284,6 @@ int createSocket(char* port, char* ip, int queue);
 
 // prints the info of the server socket and the client socket
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
-
-int handleRequest(void *args);
 
 int handleRecv(void *args);
 

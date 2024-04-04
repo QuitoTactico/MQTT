@@ -10,25 +10,29 @@
 
 void handleFixedHeader(char *args)
 {
+    int offset = 0;
     fixedHeader header;
 
-    memcpy(&header, args, sizeof(header));
-
-    handleConnect(args);
+    memcpy(&header.messageType, args + offset, sizeof(uint8_t));
+    offset += sizeof(uint8_t);
+    memcpy(&header.remainingLenght, args + offset, sizeof(uint16_t));
+    offset += sizeof(uint16_t);
 
     switch (header.messageType & FIXED)
     {
         case CONNECT:
-            handleConnect(args);
+            printf("####### user connecting #######\n\n");
+            handleConnect(args, offset);
             break;
         case PUBLISH:
-            handlePublish(args);
+            handlePublish(args, offset);
             break;
         case SUBSCRIBE:
-            handleSubscribe(args);
+            handleSubscribe(args, offset);
             break;
         default:
-            printf("wrong header\n\n");
+            printf("information: %s", args);
+            printf("####### wrong header #######\n\n");
             break;
     }
 }
@@ -41,15 +45,24 @@ void handleFixedHeader(char *args)
 /*                                         */
 /*******************************************/
 
-void handleConnect(char* args)
+void handleConnect(char* args, int offset)
 {
-    int offset = sizeof(fixedHeader);
     connectVariableHeader variable;
-    memcpy(&variable, args + offset, sizeof(connectVariableHeader));
+
+    memcpy(&variable.nameLenght, args + offset, sizeof(uint16_t));
+    offset += sizeof(uint16_t);
+    memcpy(&variable.name, args + offset, sizeof(char) * 4);
+    offset += sizeof(char) * 4;
+    memcpy(&variable.version, args + offset, sizeof(uint8_t));
+    offset += sizeof(uint8_t);
+    memcpy(&variable.connectFlags, args + offset, sizeof(uint8_t));
+    offset += sizeof(uint8_t);
+    memcpy(&variable.keepAlive, args + offset, sizeof(uint16_t));
+    offset += sizeof(uint16_t);
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
-    offset += sizeof(connectVariableHeader);
+
     }
     if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
     {
@@ -72,19 +85,17 @@ void handleConnect(char* args)
 
     }
 
-    connectPayload payload = readConnectPayload(args);
+    connectPayload payload = readConnectPayload(args, offset);
 
-    printf("SIUUUUUUUUUU: %s\n", payload.userName);
+    printf("SIUUUUUUUUUU: %s\n\n", payload.clientID);
 
     freeConnectPayload(&payload);
 
     memset(&payload, 0, sizeof(connectPayload));
 }
 
-connectPayload readConnectPayload(char* args)
+connectPayload readConnectPayload(char* args, int offset)
 {
-    int offset = sizeof(fixedHeader) + sizeof(connectVariableHeader);
-
     connectPayload payload;
 
     //========client id size========
@@ -95,11 +106,15 @@ connectPayload readConnectPayload(char* args)
 
     //========client id========
 
-    do {
-        payload.clientID = (char *)malloc(payload.clientIDSize);
-    }while(payload.clientID == NULL);
+    if (payload.clientIDSize != 0)
+    {
+        do {
+            payload.clientID = (char *)malloc(payload.clientIDSize);
+        } while (payload.clientID == NULL);
+        
 
-    memcpy(payload.clientID, args + offset, payload.clientIDSize);
+        memcpy(payload.clientID, args + offset, payload.clientIDSize);
+    }
 
     offset += payload.clientIDSize;
 
@@ -111,10 +126,15 @@ connectPayload readConnectPayload(char* args)
 
     //========will topic========
 
-    payload.willTopic = (char *)malloc(payload.willTopicSize);
+    if (payload.willTopicSize != 0)
+    {
+        do {
+            payload.willTopic = (char *)malloc(payload.willTopicSize);
+        } while (payload.willTopic == NULL);
 
-    memcpy(payload.willTopic, args + offset, payload.willTopicSize);
-
+        memcpy(payload.willTopic, args + offset, payload.willTopicSize);
+    }
+    
     offset += payload.willTopicSize;
 
     //========will message size========
@@ -125,9 +145,14 @@ connectPayload readConnectPayload(char* args)
 
     //========will message========
 
-    payload.willMessage = (char *)malloc(payload.willMessageSize);
+    if (payload.willMessageSize != 0)
+    {
+        do {
+            payload.willMessage = (char *)malloc(payload.willMessageSize);
+        } while (payload.willMessage == NULL);
 
-    memcpy(payload.willMessage, args + offset, payload.willMessageSize);
+        memcpy(payload.willMessage, args + offset, payload.willMessageSize);
+    }
 
     offset += payload.willMessageSize;
 
@@ -139,10 +164,15 @@ connectPayload readConnectPayload(char* args)
 
     //========name========
 
-    payload.userName = (char *)malloc(payload.userNameSize);
+    if (payload.userNameSize != 0)
+    {
+        do {
+            payload.userName = (char *)malloc(payload.userNameSize);
+        } while (payload.userName == NULL);
 
-    memcpy(payload.userName, args + offset, payload.userNameSize);
-
+        memcpy(payload.userName, args + offset, payload.userNameSize);
+    }
+    
     offset += payload.userNameSize;
 
     //========password size========
@@ -153,10 +183,15 @@ connectPayload readConnectPayload(char* args)
 
     //========password========
 
-    payload.passWord = (char *)malloc(payload.passWordSize);
+    if (payload.passWordSize != 0)
+    {
+        do {
+            payload.passWord = (char *)malloc(payload.passWordSize);
+        } while (payload.passWord == NULL);
 
-    memcpy(payload.passWord, args + offset, payload.passWordSize);
-
+        memcpy(payload.passWord, args + offset, payload.passWordSize);
+    }
+    
     offset += payload.passWordSize;
 
     return payload;
@@ -164,11 +199,11 @@ connectPayload readConnectPayload(char* args)
 
 void freeConnectPayload(connectPayload* payload)
 {
-    free(payload->clientID);
-    free(payload->willTopic);
-    free(payload->willMessage);
-    free(payload->userName);
-    free(payload->passWord);
+    if (payload->clientIDSize != 0) free(payload->clientID);
+    if (payload->willTopicSize != 0) free(payload->willTopic);
+    if (payload->willMessageSize != 0) free(payload->willMessage);
+    if (payload->userNameSize != 0) free(payload->userName);
+    if (payload->passWordSize != 0) free(payload->passWord);
 }
 
 //================================================================================================================
@@ -179,7 +214,7 @@ void freeConnectPayload(connectPayload* payload)
 /*                                         */
 /*******************************************/
 
-void handlePublish(char* args)
+void handlePublish(char* args, int offset)
 {
 
 }
@@ -192,7 +227,7 @@ void handlePublish(char* args)
 /*                                         */
 /*******************************************/
 
-void handleSubscribe(char* args)
+void handleSubscribe(char* args, int offset)
 {
 
 }
@@ -274,30 +309,13 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_add
         return -1;
     }
 
-    printf("ip conection from %s with port %s\n", hostName, serviceName);
-}
-
-int handleRequest(void *args)
-{
-
-    SOCKET *sock = (SOCKET *)args;
-
-    
-    
-    mtx_lock(&mutex);
-
-    
-
-    mtx_unlock(&mutex);
-
-    return 0;
+    printf("####### ip conection from %s with port %s #######\n", hostName, serviceName);
 }
 
 int handleRecv(void *args)
 {
     int sockfd = *(int *)args;
 
-    // accept one connection and write the info of the connected client and create its file descriptor
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
 
@@ -309,9 +327,8 @@ int handleRecv(void *args)
         return 1;
     }
 
-    printf("connection accepted\n\n");
-    
-    // prints the info of the server socket and the client socket
+    printf("####### connection accepted #######\n\n");
+
     if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
     {
         close(clientfd);
@@ -322,11 +339,15 @@ int handleRecv(void *args)
     char buf[1000];
     int len = 1000; 
 
+    int num = 1;
+
     while(buf[0] != 'q')
     {
         recv(clientfd, buf, len, 0);
 
-        printf("info del cliente %d:\n\n%s\n", clientfd, buf);
+        printf("===== time %d =====\n\n", num);
+        num++;
+        //printf("info del cliente %d:\n\n%s\n", clientfd, buf);
         
         if(buf[0] == 'q') break;
 
@@ -335,7 +356,7 @@ int handleRecv(void *args)
         memset(buf, 0, len);
     }
 
-    printf("client gone\n");
+    printf("####### client gone #######\n\n");
 
     memset(buf, 0, len);
     

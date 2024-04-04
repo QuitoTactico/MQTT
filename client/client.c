@@ -49,9 +49,42 @@ int main(int argc, char *argv[])
             break;
         }
 
-        uint8_t a = 10;
+        char a[100];
+        a[0] = CONNECT;
+        a[1] = 1;
+        a[2] = 10;
 
-        send(sockfd, &a, 1, 0);
+        // VARIABLE HEADER
+        a[3] = 1;
+        a[4] = 4;
+        a[5] = 'M';
+        a[6] = 'Q';
+        a[7] = 'T';
+        a[8] = 'T';
+        a[9] = 4;
+        a[10] = 4;
+        a[11] = 4;
+        a[12] = 4;
+
+        a[13] = 0;
+        a[14] = 5;
+        a[15] = 'a';
+        a[16] = '1';
+        a[17] = '3';
+        a[18] = 'u';
+        a[19] = '2';
+        a[20] = 0;
+        a[21] = 0;
+        a[22] = 0;
+        a[23] = 0;
+        a[24] = 0;
+        a[25] = 0;
+        a[26] = 0;
+        a[27] = 0;
+
+        send(sockfd, &a, 100, 0);
+
+        memset(a, 0, 100);
 
         send(sockfd, answer, strlen(answer), 0);
     }
