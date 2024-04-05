@@ -10,30 +10,44 @@
 
 void handleFixedHeader(char *args)
 {
-    int offset = 0;
+    int16_t offset = 0;
     fixedHeader header;
 
-    memcpy(&header.messageType, args + offset, sizeof(uint8_t));
-    offset += sizeof(uint8_t);
-    memcpy(&header.remainingLenght, args + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
+    memcpy(&header.messageType, args + offset, 1);
+    offset += 1;
+    memcpy(&header.remainingLenght, args + offset, 2);
+    offset += 2;
 
     switch (header.messageType & FIXED)
     {
-        case CONNECT:
-            printf("####### user connecting #######\n\n");
-            handleConnect(args, offset);
-            break;
-        case PUBLISH:
-            handlePublish(args, offset);
-            break;
-        case SUBSCRIBE:
-            handleSubscribe(args, offset);
-            break;
-        default:
-            printf("information: %s", args);
-            printf("####### wrong header #######\n\n");
-            break;
+    case CONNECT:
+        printf("###############################\n");
+        printf("####### user connecting #######\n");
+        printf("###############################\n\n");
+
+        handleConnect(args, offset);
+        break;
+    case PUBLISH:
+        printf("###############################\n");
+        printf("####### user publishing #######\n");
+        printf("###############################\n\n");
+
+        handlePublish(args, offset);
+        break;
+    case SUBSCRIBE:
+        printf("################################\n");
+        printf("####### user subscribing #######\n");
+        printf("################################\n\n");
+
+        handleSubscribe(args, offset);
+        break;
+    default:
+        printf("############################\n");
+        printf("####### wrong header #######\n");
+        printf("############################\n\n");
+
+        printf("information: %s", args);
+        break;
     }
 }
 
@@ -45,165 +59,198 @@ void handleFixedHeader(char *args)
 /*                                         */
 /*******************************************/
 
-void handleConnect(char* args, int offset)
+void handleConnect(char *args, int16_t offset)
 {
     connectVariableHeader variable;
 
-    memcpy(&variable.nameLenght, args + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
-    memcpy(&variable.name, args + offset, sizeof(char) * 4);
-    offset += sizeof(char) * 4;
-    memcpy(&variable.version, args + offset, sizeof(uint8_t));
-    offset += sizeof(uint8_t);
-    memcpy(&variable.connectFlags, args + offset, sizeof(uint8_t));
-    offset += sizeof(uint8_t);
-    memcpy(&variable.keepAlive, args + offset, sizeof(uint16_t));
-    offset += sizeof(uint16_t);
+    memcpy(&variable.nameLenght, args + offset, 2);
+    offset += 2;
+    memcpy(&variable.name, args + offset, 4);
+    offset += 4;
+    memcpy(&variable.version, args + offset, 1);
+    offset += 1;
+    memcpy(&variable.connectFlags, args + offset, 1);
+    offset += 1;
+    memcpy(&variable.keepAlive, args + offset, 2);
+    offset += 2;
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
-
+        printf("clean start\n");
     }
     if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
     {
-
+        printf("will flags\n");
     }
     if ((variable.connectFlags & WILLQOS) == WILLQOS)
     {
-
+        printf("will q0s\n");
     }
     if ((variable.connectFlags & WILLRETAIN) == WILLRETAIN)
     {
-
+        printf("will retain\n");
     }
     if ((variable.connectFlags & PASSWORD) == PASSWORD)
     {
-
+        printf("pass word\n");
     }
     if ((variable.connectFlags & USERNAME) == USERNAME)
     {
-
+        printf("user name\n");
     }
 
     connectPayload payload = readConnectPayload(args, offset);
 
-    printf("SIUUUUUUUUUU: %s\n\n", payload.clientID);
+    if (payload.clientIDSize != 0)
+    {
+        printf("clientID size: %d\n", payload.clientIDSize);
+        printf("clientID: %s\n", payload.clientID);
+    }
+    if (payload.willTopicSize != 0)
+    {
+        printf("will topic size: %d\n", payload.willTopicSize);
+        printf("will topic: %s\n", payload.willTopic);
+    }
+    if (payload.willMessage != 0)
+    {
+        printf("will message size: %d\n", payload.willMessageSize);
+        printf("will message: %s\n", payload.willMessage);
+    }
+    if (payload.userNameSize != 0)
+    {
+        printf("user name size: %d\n\n", payload.userNameSize);
+        printf("user name: %s\n\n", payload.userName);
+    }
+    if (payload.passWordSize != 0)
+    {
+        printf("password size: %d\n\n", payload.passWordSize);
+        printf("password: %s\n\n", payload.passWord);
+    }
 
     freeConnectPayload(&payload);
 
     memset(&payload, 0, sizeof(connectPayload));
 }
 
-connectPayload readConnectPayload(char* args, int offset)
+connectPayload readConnectPayload(char *args, int16_t offset)
 {
     connectPayload payload;
 
     //========client id size========
 
-    memcpy(&payload.clientIDSize, args + offset, sizeof(uint16_t));
+    memcpy(&payload.clientIDSize, args + offset, 2);
 
-    offset += sizeof(uint16_t);
+    offset += 2;
 
     //========client id========
 
     if (payload.clientIDSize != 0)
     {
-        do {
+        do
+        {
             payload.clientID = (char *)malloc(payload.clientIDSize);
         } while (payload.clientID == NULL);
-        
 
         memcpy(payload.clientID, args + offset, payload.clientIDSize);
-    }
 
-    offset += payload.clientIDSize;
+        offset += payload.clientIDSize;
+    }
 
     //========will topic size========
 
-    memcpy(&payload.willTopicSize, args + offset, sizeof(uint16_t));
+    memcpy(&payload.willTopicSize, args + offset, 2);
 
-    offset += sizeof(uint16_t);
+    offset += 2;
 
     //========will topic========
 
     if (payload.willTopicSize != 0)
     {
-        do {
+        do
+        {
             payload.willTopic = (char *)malloc(payload.willTopicSize);
         } while (payload.willTopic == NULL);
 
         memcpy(payload.willTopic, args + offset, payload.willTopicSize);
+
+        offset += payload.willTopicSize;
     }
-    
-    offset += payload.willTopicSize;
 
     //========will message size========
 
-    memcpy(&payload.willMessageSize, args + offset, sizeof(uint16_t));
+    memcpy(&payload.willMessageSize, args + offset, sizeof(int16_t));
 
-    offset += sizeof(uint16_t);
+    offset += sizeof(int16_t);
 
     //========will message========
 
     if (payload.willMessageSize != 0)
     {
-        do {
+        do
+        {
             payload.willMessage = (char *)malloc(payload.willMessageSize);
         } while (payload.willMessage == NULL);
 
         memcpy(payload.willMessage, args + offset, payload.willMessageSize);
-    }
 
-    offset += payload.willMessageSize;
+        offset += payload.willMessageSize;
+    }
 
     //========name size========
 
-    memcpy(&payload.userNameSize, args + offset, sizeof(uint16_t));
+    memcpy(&payload.userNameSize, args + offset, sizeof(int16_t));
 
-    offset += sizeof(uint16_t);
+    offset += sizeof(int16_t);
 
     //========name========
 
     if (payload.userNameSize != 0)
     {
-        do {
+        do
+        {
             payload.userName = (char *)malloc(payload.userNameSize);
         } while (payload.userName == NULL);
 
         memcpy(payload.userName, args + offset, payload.userNameSize);
+
+        offset += payload.userNameSize;
     }
-    
-    offset += payload.userNameSize;
 
     //========password size========
 
-    memcpy(&payload.passWordSize, args + offset, sizeof(uint16_t));
+    memcpy(&payload.passWordSize, args + offset, sizeof(int16_t));
 
-    offset += sizeof(uint16_t);
+    offset += sizeof(int16_t);
 
     //========password========
 
     if (payload.passWordSize != 0)
     {
-        do {
+        do
+        {
             payload.passWord = (char *)malloc(payload.passWordSize);
         } while (payload.passWord == NULL);
 
         memcpy(payload.passWord, args + offset, payload.passWordSize);
+
+        offset += payload.passWordSize;
     }
-    
-    offset += payload.passWordSize;
 
     return payload;
 }
 
-void freeConnectPayload(connectPayload* payload)
+void freeConnectPayload(connectPayload *payload)
 {
-    if (payload->clientIDSize != 0) free(payload->clientID);
-    if (payload->willTopicSize != 0) free(payload->willTopic);
-    if (payload->willMessageSize != 0) free(payload->willMessage);
-    if (payload->userNameSize != 0) free(payload->userName);
-    if (payload->passWordSize != 0) free(payload->passWord);
+    if (payload->clientIDSize != 0)
+        free(payload->clientID);
+    if (payload->willTopicSize != 0)
+        free(payload->willTopic);
+    if (payload->willMessageSize != 0)
+        free(payload->willMessage);
+    if (payload->userNameSize != 0)
+        free(payload->userName);
+    if (payload->passWordSize != 0)
+        free(payload->passWord);
 }
 
 //================================================================================================================
@@ -214,9 +261,8 @@ void freeConnectPayload(connectPayload* payload)
 /*                                         */
 /*******************************************/
 
-void handlePublish(char* args, int offset)
+void handlePublish(char *args, int16_t offset)
 {
-
 }
 
 //================================================================================================================
@@ -227,9 +273,8 @@ void handlePublish(char* args, int offset)
 /*                                         */
 /*******************************************/
 
-void handleSubscribe(char* args, int offset)
+void handleSubscribe(char *args, int16_t offset)
 {
-
 }
 
 //================================================================================================================
@@ -242,16 +287,16 @@ void handleSubscribe(char* args, int offset)
 
 mtx_t mutex;
 
-int createSocket(char* ip, char* port, int queue)
+int createSocket(char *ip, char *port, int queue)
 {
     struct addrinfo hints, *res;
 
     // first, load up the address structs with getaddrinfo():
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET; // use IPv4 
+    hints.ai_family = AF_INET;       // use IPv4
     hints.ai_socktype = SOCK_STREAM; // TCP
-    hints.ai_flags = AI_PASSIVE; // fill in my IP for me
+    hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
 
     if (getaddrinfo(ip, port, &hints, &res) != 0)
     {
@@ -286,13 +331,13 @@ int createSocket(char* ip, char* port, int queue)
         perror("LISTENING");
         return -1;
     }
-    
+
     freeaddrinfo(res);
 
     return sockfd;
 }
 
-int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size)
+int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_addr, socklen_t addr_size)
 {
     const int NAMESIZE = 100;
     char hostName[NAMESIZE];
@@ -309,7 +354,7 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_add
         return -1;
     }
 
-    printf("####### ip conection from %s with port %s #######\n", hostName, serviceName);
+    printf("####### ip conection from %s with port %s #######\n\n", hostName, serviceName);
 }
 
 int handleRecv(void *args)
@@ -329,27 +374,28 @@ int handleRecv(void *args)
 
     printf("####### connection accepted #######\n\n");
 
-    if(printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
+    if (printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
     {
         close(clientfd);
         return 1;
     }
 
-    // print the info recieved by the client 
+    // print the info recieved by the client
     char buf[1000];
-    int len = 1000; 
+    int len = 1000;
 
     int num = 1;
 
-    while(buf[0] != 'q')
+    while (buf[0] != 'q')
     {
         recv(clientfd, buf, len, 0);
 
         printf("===== time %d =====\n\n", num);
         num++;
-        //printf("info del cliente %d:\n\n%s\n", clientfd, buf);
-        
-        if(buf[0] == 'q') break;
+        // printf("info del cliente %d:\n\n%s\n", clientfd, buf);
+
+        if (buf[0] == 'q')
+            break;
 
         handleFixedHeader(buf);
 
@@ -359,7 +405,7 @@ int handleRecv(void *args)
     printf("####### client gone #######\n\n");
 
     memset(buf, 0, len);
-    
+
     close(clientfd);
 
     return 0;
@@ -368,20 +414,23 @@ int handleRecv(void *args)
 char quit[5];
 int stop = 1;
 
-int handleServer(void* args)
+int handleServer(void *args)
 {
-    while (1) {
+    while (1)
+    {
         printf("Enter 'quit' to exit: ");
         fgets(quit, sizeof(quit), stdin);
         // Remove newline character if present
         quit[strcspn(quit, "\n")] = 0;
 
         // Convert quit to lowercase for case-insensitive comparison
-        for (int i = 0; quit[i]; i++) {
+        for (int i = 0; quit[i]; i++)
+        {
             quit[i] = tolower(quit[i]);
         }
 
-        if (strcmp(quit, "quit") == 0) {
+        if (strcmp(quit, "quit") == 0)
+        {
             stop = 0;
             printf("Exiting...\n");
             break;

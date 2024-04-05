@@ -1,6 +1,12 @@
 #include "mqttClient.h"
 
-void readConnectPayload(int sockfd, char *message)
+/*******************************************/
+/*                                         */
+/*                 CONNECT                 */
+/*                                         */
+/*******************************************/
+
+void createConnectPayload(char *message)
 {
     // FIXED HEADER
     message[0] = CONNECT;
@@ -8,14 +14,17 @@ void readConnectPayload(int sockfd, char *message)
     message[2] = 10;
 
     // VARIABLE HEADER
-    message[3] = 1;
+    message[3] = 0;
     message[4] = 4;
     message[5] = 'M';
     message[6] = 'Q';
     message[7] = 'T';
     message[8] = 'T';
+    // VERSION 3.1.1
     message[9] = 4;
-    message[10] = 4;
+    // FLAGS
+    message[10] = CLEANSTART + WILLRETAIN + USERNAME + PASSWORD;
+    // KEEP ALIVE
     message[11] = 4;
     message[12] = 4;
 
@@ -26,23 +35,32 @@ void readConnectPayload(int sockfd, char *message)
 
     if (strcmp(asnwer, "0") == 0)
     {
-        char uniqueID[23];
-        uint16_t len_uniqueID;
+        size_t longitud = 0;
+        ssize_t readID;
+        char *ID;
 
-        printf("ID: ");
-        scanf("%s", uniqueID);
-
-        len_uniqueID = strlen(uniqueID);
+        printf("ID:");
         getchar();
+        readID = getline(&ID, &longitud, stdin);
 
-        strcpy(&message[13], (char *)&len_uniqueID);
-        strcat(&message[13], uniqueID);
-        printf("The length of the ID is: %zu\n", strlen(uniqueID));
+        if (readID != -1)
+        {
+            int16_t len_ID;
+            printf("You entered: %s", ID);
+            printf("The length of the message is: %zu\n", strlen(ID));
+            ID[strcspn(ID, "\n")] = 0;
+            len_ID = longitud;
+            longitud = 0;
+
+            strcat(message, (char *)&len_ID);
+            strcat(message, ID);
+            free(ID);
+        }
 
         char answerWill[20];
         printf("Do you want to leave the will flag (0 no | 1 yes): ");
         scanf("%s", answerWill);
-        size_t longitud = 0;
+
         if (strcmp(answerWill, "1") == 0)
         {
             ssize_t readtopic;
@@ -54,21 +72,20 @@ void readConnectPayload(int sockfd, char *message)
 
             if (readtopic != -1)
             {
-                uint16_t len_topic;
+                int16_t len_topic;
                 printf("You entered: %s", topic);
                 printf("The length of the message is: %zu\n", strlen(topic));
                 topic[strcspn(topic, "\n")] = 0;
                 len_topic = longitud;
                 longitud = 0;
 
-                strcat(&message[13], (char *)&len_topic);
-                strcat(&message[13], topic);
+                strcat(message, (char *)&len_topic);
+                strcat(message, topic);
                 free(topic);
             }
 
             char *messagewill;
             ssize_t readmessage;
-            uint16_t len_message;
             longitud = 0;
 
             printf("Will message:");
@@ -76,13 +93,14 @@ void readConnectPayload(int sockfd, char *message)
 
             if (readmessage != -1)
             {
+                int16_t len_message;
                 printf("You entered: %s", messagewill);
                 printf("The length of the message is: %zu\n", strlen(messagewill));
                 messagewill[strcspn(messagewill, "\n")] = 0;
                 len_message = longitud;
 
-                strcat(&message[13], (char *)&len_message);
-                strcat(&message[13], messagewill);
+                strcat(message, (char *)&len_message);
+                strcat(message, messagewill);
                 free(messagewill);
             }
         }
@@ -90,9 +108,9 @@ void readConnectPayload(int sockfd, char *message)
         {
             strcat(&message[13], "0000");
         }
+
         char *username;
         ssize_t readuser;
-        uint16_t len_user;
         longitud = 0;
 
         printf("Username:");
@@ -100,8 +118,9 @@ void readConnectPayload(int sockfd, char *message)
 
         if (readuser != -1)
         {
+            int16_t len_user;
             printf("You entered the username: %s", username);
-            printf("The length of the username is: %zu\n", strlen(username) - 1);
+            printf("The length of the username is: %zu\n", strlen(username));
             username[strcspn(username, "\n")] = 0;
             len_user = longitud;
 
@@ -110,9 +129,8 @@ void readConnectPayload(int sockfd, char *message)
             free(username);
         }
 
-        char *password = NULL;
+        char *password;
         ssize_t readpassword;
-        uint16_t len_pass;
         longitud = 0;
 
         printf("Password:");
@@ -120,6 +138,7 @@ void readConnectPayload(int sockfd, char *message)
 
         if (readpassword != -1)
         {
+            int16_t len_pass;
             printf("You entered the password: %s", password);
             printf("The length of the password is: %zu\n", strlen(password));
             password[strcspn(password, "\n")] = 0;
@@ -132,7 +151,7 @@ void readConnectPayload(int sockfd, char *message)
         printf("The message is: %s", message);
     }
 }
-int connectSocket(char *ip, char *port, int queue)
+int connectSocket(char *ip, char *port)
 {
     struct addrinfo hints, *res;
 

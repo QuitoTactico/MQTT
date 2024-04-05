@@ -3,13 +3,12 @@
 #include <stdint.h>
 #include <string.h>
 #include <threads.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <ctype.h>
 
 #define MY_PORT "1883"
-#define MY_IP "1270.1.0."
+#define MY_IP ""
 #define QUEUESIZE 1
 
 //================================================================================================================
@@ -50,8 +49,8 @@
 /*******************************************/
 
 typedef struct {
-    uint8_t messageType;
-    uint16_t remainingLenght;
+    int8_t messageType;
+    int16_t remainingLenght;
 } fixedHeader;
 
 /*******************************************/
@@ -107,18 +106,16 @@ void handleFixedHeader(char *args);
 
 typedef struct {
     // 4
-    uint16_t nameLenght;
+    int16_t nameLenght;
     // "MQTT"
     char name[4];
     // 4 for 3.1 | 5 for 5
-    uint8_t version;
+    int8_t version;
     // type of connection
-    uint8_t connectFlags;
+    int8_t connectFlags;
     // the time in seconds between each user mqtt packet transmition
-    uint16_t keepAlive;
+    int16_t keepAlive;
 } connectVariableHeader;
-
-#define SIZE_CONN_VAR sizeof(uint16_t)+(sizeof(char)*4)+sizeof(uint8_t)+sizeof(uint8_t)+sizeof(uint16_t)
 
 /*******************************************/
 /*                                         */
@@ -146,20 +143,20 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t clientIDSize;
+    int16_t clientIDSize;
     char* clientID;
-    uint16_t willTopicSize;
+    int16_t willTopicSize;
     char* willTopic;
-    uint16_t willMessageSize;
+    int16_t willMessageSize;
     char* willMessage;
-    uint16_t userNameSize;
+    int16_t userNameSize;
     char* userName;
-    uint16_t passWordSize;
+    int16_t passWordSize;
     char* passWord;
 } connectPayload;
 
-void handleConnect(char* args, int offset);
-connectPayload readConnectPayload(char* args, int offset);
+void handleConnect(char* args, int16_t offset);
+connectPayload readConnectPayload(char* args, int16_t offset);
 void freeConnectPayload(connectPayload* payload);
 
 //================================================================================================================
@@ -171,8 +168,8 @@ void freeConnectPayload(connectPayload* payload);
 /*******************************************/
 
 typedef struct {
-    uint8_t flags;
-    uint8_t returnCode;
+    int8_t flags;
+    int8_t returnCode;
 } connackVariableHeader;
 
 /*******************************************/
@@ -197,9 +194,9 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t topicSize;
+    int16_t topicSize;
     char* topic;
-    uint16_t identifier;
+    int16_t identifier;
 } publishVariableHeader;
 
 
@@ -210,11 +207,11 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t payloadSize;
+    int16_t payloadSize;
     char* data;
 } publishPayload;
 
-void handlePublish(char* args, int offset);
+void handlePublish(char* args, int16_t offset);
 
 //================================================================================================================
 
@@ -225,7 +222,7 @@ void handlePublish(char* args, int offset);
 /*******************************************/
 
 typedef struct {
-    uint16_t identifier;
+    int16_t identifier;
 } pubackVariableHeader;
 
 //================================================================================================================
@@ -237,7 +234,7 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t identifier;
+    int16_t identifier;
 } subscribeVariableHeader;
 
 /*******************************************/
@@ -247,12 +244,12 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t payloadSize;
+    int16_t payloadSize;
     char* topic;
-    uint8_t qos;
+    int8_t qos;
 } subscribePayload;
 
-void handleSubscribe(char* args, int offset);
+void handleSubscribe(char* args, int16_t offset);
 
 //================================================================================================================
 
@@ -263,7 +260,7 @@ void handleSubscribe(char* args, int offset);
 /*******************************************/
 
 typedef struct {
-    uint16_t identifier;
+    int16_t identifier;
 } subackbeVariableHeader;
 
 //================================================================================================================

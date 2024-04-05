@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "stdlib.h": "c",
-        "mqttserver.h": "c"
-    }
+        "mqttserver.h": "c",
+        "socket.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

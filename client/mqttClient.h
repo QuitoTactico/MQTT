@@ -3,13 +3,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <threads.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 
 #define MY_PORT "1883"
-#define MY_IP "18.206.218.163"
-#define QUEUESIZE 10
+#define MY_IP "23.22.64.40"
 
 //================================================================================================================
 
@@ -49,8 +47,8 @@
 /*******************************************/
 
 typedef struct {
-    uint8_t messageType;
-    uint16_t remainingLenght;
+    int8_t messageType;
+    int16_t remainingLenght;
 } fixedHeader;
 
 /*******************************************/
@@ -104,15 +102,15 @@ typedef struct {
 
 typedef struct {
     // 4
-    uint16_t nameLenght;
+    int16_t nameLenght;
     // "MQTT"
     char name[4];
     // 4 for 3.1 | 5 for 5
-    uint8_t version;
+    int8_t version;
     // type of connection
-    uint8_t connectFlags;
+    int8_t connectFlags;
     // the time in seconds between each user mqtt packet transmition
-    uint16_t keepAlive;
+    int16_t keepAlive;
 } connectVariableHeader;
 
 /*******************************************/
@@ -141,19 +139,19 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t clientIDSize;
+    int16_t clientIDSize;
     char* clientID;
-    uint16_t willTopicSize;
+    int16_t willTopicSize;
     char* willTopic;
-    uint16_t willMessageSize;
+    int16_t willMessageSize;
     char* willMessage;
-    uint16_t userNameSize;
+    int16_t userNameSize;
     char* userName;
-    uint16_t passWordSize;
+    int16_t passWordSize;
     char* passWord;
 } connectPayload;
 
-void readConnectPayload(int sockfd, char *message);
+void createConnectPayload(char *message);
 
 //================================================================================================================
 
@@ -164,9 +162,9 @@ void readConnectPayload(int sockfd, char *message);
 /*******************************************/
 
 typedef struct {
-    uint16_t topicSize;
+    int16_t topicSize;
     char* topic;
-    uint16_t identifier;
+    int16_t identifier;
 } publishVariableHeader;
 
 
@@ -177,7 +175,7 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t payloadSize;
+    int16_t payloadSize;
     char* data;
 } publishPayload;
 
@@ -190,7 +188,7 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t identifier;
+    int16_t identifier;
 } subscribeVariableHeader;
 
 /*******************************************/
@@ -200,9 +198,9 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    uint16_t payloadSize;
+    int16_t payloadSize;
     char* topic;
-    uint8_t qos;
+    int8_t qos;
 } subscribePayload;
 
 //================================================================================================================
@@ -219,7 +217,7 @@ typedef struct {
 } SOCKET;
 
 // create the socket file descriptor with the ip, port and queue size
-int connectSocket(char* port, char* ip, int queue);
+int connectSocket(char* port, char* ip);
 
 // prints the info of the server socket and the client socket
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
