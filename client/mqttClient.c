@@ -50,7 +50,7 @@ typedef struct
 /*******************************************/
 
 #define DUP 0b00000001    // DUPLICATE DELIVERY PUBLISH
-#define QOS 0b00000110    // PUBLISH CUALITY OF SERVICE
+#define QOS 0b00000110    // PUBLISH CUALITY OF SERVICE -> 2
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 #define QOS0 0b00000000   // QOS 0
 #define QOS1 0b00000010   // QOS 1
@@ -205,7 +205,7 @@ void createConnect(char *message)
     offset += 1;
 
     uint16_t rem_lengt = htons(120);
-    memcpy(message + offset, &rem_lengt, 2);
+    memcpy(message + offset, &rem_lengt, 2); //remaining length
 
     offset += 2;
 
@@ -302,7 +302,7 @@ void createPublish(char *message)
     // QOS VALIDATION
     if (strcmp(asnwer, "0") == 0)
     {
-        printf("Put the level of retain that you want to leave: 0 or 1");
+        printf("Put the level of retain that you want to leave: (0 or 1): ");
         scanf("%s", asnwer);
         getchar();
         // FIXED HEADER
@@ -357,7 +357,7 @@ void createPublish(char *message)
     else if (strcmp(asnwer, "1") == 0)
     {
         // FIXED HEADER
-        printf("Put the level of retain that you want to leave: 0 or 1");
+        printf("Put the level of retain that you want to leave: (0 or 1): ");
         scanf("%s", asnwer);
         getchar();
         // FIXED HEADER
@@ -409,8 +409,113 @@ void createPublish(char *message)
 /*                                         */
 /*******************************************/
 
-void createSubscribe(char *message)
-{
+void createSubscribe(char *message){
+    int offset = 0;
+    char asnwer[50];
+    srand(time(NULL));
+
+    // FIXED HEADER
+    message[0] = SUBSCRIBE;
+
+    offset += 1;
+
+    uint16_t rem_lengt = htons(120);
+
+    memcpy(message + offset, &rem_lengt, 2);
+
+    offset += 2;
+    //VARIABLE HEADER
+
+    message[offset] = rand() % 256;
+    offset += 1;
+
+    message[offset] = rand() % 256;
+    offset += 1;
+
+    utfHandle(message, "TOPIC NAME: a/b", &offset);
+    //LENGTH MSB
+    message[offset] = 1;
+    offset += 1;
+    //LENGTH LSB
+    message[offset] = 1;
+    offset += 1;
+
+    printf("Put the level of QoS that you want to leave: 0 or 1");
+    scanf("%s", asnwer);
+    getchar();
+
+    // QOS VALIDATION
+    if (strcmp(asnwer, "0") == 0)
+    {
+        message[offset] = QOS0;
+        offset += 1;
+    }
+    else if (strcmp(asnwer, "1") == 0)
+    {
+        message[offset] = QOS1;
+        offset += 1;
+    }
+    printf("Do you want to put another topic? (0 no | 1 yes): ");
+    scanf("%s", asnwer);
+    getchar();
+    
+    for(;;){
+
+        if (strcmp(asnwer, "1") == 0)
+        {
+            message[offset] = rand() % 256;
+            offset += 1;
+
+            message[offset] = rand() % 256;
+            offset += 1;
+
+            utfHandle(message, "TOPIC NAME: a/b", &offset);
+            //LENGTH MSB
+            message[offset] = 0;
+            offset += 1;
+            //LENGTH LSB
+            message[offset] = 0;
+            offset += 1;
+
+            printf("Put the level of QoS that you want to leave: 0 or 1");
+            scanf("%s", asnwer);
+            getchar();
+
+            // QOS VALIDATION
+            if (strcmp(asnwer, "0") == 0)
+            {
+                message[offset] = QOS0;
+                offset += 1;
+            }
+            else if (strcmp(asnwer, "1") == 0)
+            {
+                message[offset] = QOS1;
+                offset += 1;
+            }
+        }else{
+            break;
+        }
+        printf("Do you want to put another topic? (0 no | 1 yes): ");
+        scanf("%s", asnwer);
+        getchar();
+    }
+
+    for (size_t i = 0; i < offset; i++)
+    {
+        printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
+    }
+
+    
+    
+
+
+
+
+
+
+
+
+
 }
 
 //================================================================================================================
