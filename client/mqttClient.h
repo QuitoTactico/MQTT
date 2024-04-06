@@ -5,9 +5,10 @@
 #include <threads.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 #define MY_PORT "1883"
-#define MY_IP "23.22.64.40"
+#define MY_IP "54.196.182.249"
 
 //================================================================================================================
 
@@ -47,8 +48,8 @@
 /*******************************************/
 
 typedef struct {
-    int8_t messageType;
-    int16_t remainingLenght;
+    uint8_t messageType;
+    uint16_t remainingLenght;
 } fixedHeader;
 
 /*******************************************/
@@ -102,15 +103,15 @@ typedef struct {
 
 typedef struct {
     // 4
-    int16_t nameLenght;
+    uint16_t nameLenght;
     // "MQTT"
     char name[4];
     // 4 for 3.1 | 5 for 5
-    int8_t version;
+    uint8_t version;
     // type of connection
-    int8_t connectFlags;
+    uint8_t connectFlags;
     // the time in seconds between each user mqtt packet transmition
-    int16_t keepAlive;
+    uint16_t keepAlive;
 } connectVariableHeader;
 
 /*******************************************/
@@ -139,15 +140,15 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    int16_t clientIDSize;
+    uint16_t clientIDSize;
     char* clientID;
-    int16_t willTopicSize;
+    uint16_t willTopicSize;
     char* willTopic;
-    int16_t willMessageSize;
+    uint16_t willMessageSize;
     char* willMessage;
-    int16_t userNameSize;
+    uint16_t userNameSize;
     char* userName;
-    int16_t passWordSize;
+    uint16_t passWordSize;
     char* passWord;
 } connectPayload;
 
@@ -162,9 +163,9 @@ void createConnectPayload(char *message);
 /*******************************************/
 
 typedef struct {
-    int16_t topicSize;
+    uint16_t topicSize;
     char* topic;
-    int16_t identifier;
+    uint16_t identifier;
 } publishVariableHeader;
 
 
@@ -175,7 +176,7 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    int16_t payloadSize;
+    uint16_t payloadSize;
     char* data;
 } publishPayload;
 
@@ -188,7 +189,7 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    int16_t identifier;
+    uint16_t identifier;
 } subscribeVariableHeader;
 
 /*******************************************/
@@ -198,9 +199,9 @@ typedef struct {
 /*******************************************/
 
 typedef struct {
-    int16_t payloadSize;
+    uint16_t payloadSize;
     char* topic;
-    int8_t qos;
+    uint8_t qos;
 } subscribePayload;
 
 //================================================================================================================

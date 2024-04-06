@@ -10,12 +10,13 @@
 
 void handleFixedHeader(char *args)
 {
-    int16_t offset = 0;
+    int offset = 0;
     fixedHeader header;
 
     memcpy(&header.messageType, args + offset, 1);
     offset += 1;
     memcpy(&header.remainingLenght, args + offset, 2);
+    header.remainingLenght = ntohs(header.remainingLenght);
     offset += 2;
 
     switch (header.messageType & FIXED)
@@ -59,11 +60,12 @@ void handleFixedHeader(char *args)
 /*                                         */
 /*******************************************/
 
-void handleConnect(char *args, int16_t offset)
+void handleConnect(char *args, int offset)
 {
     connectVariableHeader variable;
 
     memcpy(&variable.nameLenght, args + offset, 2);
+    variable.nameLenght = ntohs(variable.nameLenght);
     offset += 2;
     memcpy(&variable.name, args + offset, 4);
     offset += 4;
@@ -72,6 +74,7 @@ void handleConnect(char *args, int16_t offset)
     memcpy(&variable.connectFlags, args + offset, 1);
     offset += 1;
     memcpy(&variable.keepAlive, args + offset, 2);
+    variable.keepAlive = ntohs(variable.keepAlive);
     offset += 2;
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
@@ -118,27 +121,26 @@ void handleConnect(char *args, int16_t offset)
     }
     if (payload.userNameSize != 0)
     {
-        printf("user name size: %d\n\n", payload.userNameSize);
-        printf("user name: %s\n\n", payload.userName);
+        printf("user name size: %d\n", payload.userNameSize);
+        printf("user name: %s\n", payload.userName);
     }
     if (payload.passWordSize != 0)
     {
-        printf("password size: %d\n\n", payload.passWordSize);
-        printf("password: %s\n\n", payload.passWord);
+        printf("password size: %d\n", payload.passWordSize);
+        printf("password: %s\n", payload.passWord);
     }
 
     freeConnectPayload(&payload);
-
-    memset(&payload, 0, sizeof(connectPayload));
 }
 
-connectPayload readConnectPayload(char *args, int16_t offset)
+connectPayload readConnectPayload(char *args, int offset)
 {
     connectPayload payload;
 
     //========client id size========
 
     memcpy(&payload.clientIDSize, args + offset, 2);
+    payload.clientIDSize = ntohs(payload.clientIDSize);
 
     offset += 2;
 
@@ -159,6 +161,7 @@ connectPayload readConnectPayload(char *args, int16_t offset)
     //========will topic size========
 
     memcpy(&payload.willTopicSize, args + offset, 2);
+    payload.willTopicSize = ntohs(payload.willTopicSize);
 
     offset += 2;
 
@@ -178,9 +181,10 @@ connectPayload readConnectPayload(char *args, int16_t offset)
 
     //========will message size========
 
-    memcpy(&payload.willMessageSize, args + offset, sizeof(int16_t));
+    memcpy(&payload.willMessageSize, args + offset, 2);
+    payload.willMessageSize = ntohs(payload.willMessageSize);
 
-    offset += sizeof(int16_t);
+    offset += 2;
 
     //========will message========
 
@@ -198,9 +202,10 @@ connectPayload readConnectPayload(char *args, int16_t offset)
 
     //========name size========
 
-    memcpy(&payload.userNameSize, args + offset, sizeof(int16_t));
+    memcpy(&payload.userNameSize, args + offset, 2);
+    payload.userNameSize = ntohs(payload.userNameSize);
 
-    offset += sizeof(int16_t);
+    offset += 2;
 
     //========name========
 
@@ -218,9 +223,10 @@ connectPayload readConnectPayload(char *args, int16_t offset)
 
     //========password size========
 
-    memcpy(&payload.passWordSize, args + offset, sizeof(int16_t));
+    memcpy(&payload.passWordSize, args + offset, 2);
+    payload.passWordSize = ntohs(payload.passWordSize);
 
-    offset += sizeof(int16_t);
+    offset += 2;
 
     //========password========
 
@@ -261,7 +267,7 @@ void freeConnectPayload(connectPayload *payload)
 /*                                         */
 /*******************************************/
 
-void handlePublish(char *args, int16_t offset)
+void handlePublish(char *args, int offset)
 {
 }
 
@@ -273,7 +279,7 @@ void handlePublish(char *args, int16_t offset)
 /*                                         */
 /*******************************************/
 
-void handleSubscribe(char *args, int16_t offset)
+void handleSubscribe(char *args, int offset)
 {
 }
 
@@ -349,8 +355,6 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     if (getnameinfo((struct sockaddr *)their_addr, addr_size, hostName, NAMESIZE, serviceName, NAMESIZE, flags) == -1)
     {
         perror("GET NAME INFO");
-        close(sockfd);
-        close(clientfd);
         return -1;
     }
 

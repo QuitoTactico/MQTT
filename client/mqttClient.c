@@ -6,151 +6,112 @@
 /*                                         */
 /*******************************************/
 
+void utfHandle(char *message, char *type, int *offset)
+{
+    size_t longitud = 0;
+    ssize_t readinfo;
+    char *info;
+
+    printf("%s", type);
+    readinfo = getline(&info, &longitud, stdin);
+
+    if (readinfo != -1)
+    {
+        int16_t len_info;
+        int lenInfo = strlen(info) - 1;
+
+        printf("You entered: %s", info);
+        printf("The length of the message is: %u\n", lenInfo);
+
+        info[strcspn(info, "\n")] = 0;
+
+        len_info = htons(lenInfo);
+        memcpy(message + *offset, &len_info, 2);
+        *offset += 2;
+
+        memcpy(message + *offset, info, lenInfo);
+        *offset += lenInfo;
+        free(info);
+    }
+}
+
 void createConnectPayload(char *message)
 {
+    int offset = 0;
+
     // FIXED HEADER
     message[0] = CONNECT;
-    message[1] = 1;
-    message[2] = 10;
+
+    offset += 1;
+
+    uint16_t rem_lengt = htons(120);
+    memcpy(message + offset, &rem_lengt, 2);
+
+    offset += 2;
 
     // VARIABLE HEADER
-    message[3] = 0;
-    message[4] = 4;
+    uint16_t title_size = htons(4);
+    memcpy(message + offset, &title_size, 2);
+
+    offset += 2;
+
     message[5] = 'M';
     message[6] = 'Q';
     message[7] = 'T';
     message[8] = 'T';
+
+    offset += 4;
+
     // VERSION 3.1.1
     message[9] = 4;
+
+    offset += 1;
+
     // FLAGS
-    message[10] = CLEANSTART + WILLRETAIN + USERNAME + PASSWORD;
+    message[10] = 0;
+
+    offset += 1;
+
     // KEEP ALIVE
-    message[11] = 4;
-    message[12] = 4;
+    uint16_t keep_alive = htons(60);
+    memcpy(message + offset, &keep_alive, 2);
+
+    offset += 2;
 
     char asnwer[50];
-    
+
     printf("Do you have a created session (0 no | 1 yes): ");
     scanf("%s", asnwer);
+    getchar();
 
     if (strcmp(asnwer, "0") == 0)
     {
-        size_t longitud = 0;
-        ssize_t readID;
-        char *ID;
-
-        printf("ID:");
-        getchar();
-        readID = getline(&ID, &longitud, stdin);
-
-        if (readID != -1)
-        {
-            int16_t len_ID;
-            printf("You entered: %s", ID);
-            printf("The length of the message is: %zu\n", strlen(ID));
-            ID[strcspn(ID, "\n")] = 0;
-            len_ID = longitud;
-            longitud = 0;
-
-            strcat(message, (char *)&len_ID);
-            strcat(message, ID);
-            free(ID);
-        }
+        utfHandle(message, "ID: ", &offset);
 
         char answerWill[20];
         printf("Do you want to leave the will flag (0 no | 1 yes): ");
         scanf("%s", answerWill);
+        getchar();
 
         if (strcmp(answerWill, "1") == 0)
         {
-            ssize_t readtopic;
-            char *topic;
+            utfHandle(message, "will topic: ", &offset);
 
-            printf("Will topic:");
-            getchar();
-            readtopic = getline(&topic, &longitud, stdin);
-
-            if (readtopic != -1)
-            {
-                int16_t len_topic;
-                printf("You entered: %s", topic);
-                printf("The length of the message is: %zu\n", strlen(topic));
-                topic[strcspn(topic, "\n")] = 0;
-                len_topic = longitud;
-                longitud = 0;
-
-                strcat(message, (char *)&len_topic);
-                strcat(message, topic);
-                free(topic);
-            }
-
-            char *messagewill;
-            ssize_t readmessage;
-            longitud = 0;
-
-            printf("Will message:");
-            readmessage = getline(&messagewill, &longitud, stdin);
-
-            if (readmessage != -1)
-            {
-                int16_t len_message;
-                printf("You entered: %s", messagewill);
-                printf("The length of the message is: %zu\n", strlen(messagewill));
-                messagewill[strcspn(messagewill, "\n")] = 0;
-                len_message = longitud;
-
-                strcat(message, (char *)&len_message);
-                strcat(message, messagewill);
-                free(messagewill);
-            }
+            utfHandle(message, "will message: ", &offset);
         }
-        else
+
+        utfHandle(message, "user name: ", &offset);
+
+        utfHandle(message, "password: ", &offset);
+
+        for (size_t i = 0; i < offset; i++)
         {
-            strcat(&message[13], "0000");
+            printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
         }
-
-        char *username;
-        ssize_t readuser;
-        longitud = 0;
-
-        printf("Username:");
-        readuser = getline(&username, &longitud, stdin);
-
-        if (readuser != -1)
-        {
-            int16_t len_user;
-            printf("You entered the username: %s", username);
-            printf("The length of the username is: %zu\n", strlen(username));
-            username[strcspn(username, "\n")] = 0;
-            len_user = longitud;
-
-            strcat(&message[13], (char *)&len_user);
-            strcat(&message[13], username);
-            free(username);
-        }
-
-        char *password;
-        ssize_t readpassword;
-        longitud = 0;
-
-        printf("Password:");
-        readpassword = getline(&password, &longitud, stdin);
-
-        if (readpassword != -1)
-        {
-            int16_t len_pass;
-            printf("You entered the password: %s", password);
-            printf("The length of the password is: %zu\n", strlen(password));
-            password[strcspn(password, "\n")] = 0;
-            len_pass = longitud;
-
-            strcat(&message[13], (char *)&len_pass);
-            strcat(&message[13], password);
-            free(password);
-        }
-        printf("The message is: %s", message);
+        printf("\n\n");
     }
 }
+
 int connectSocket(char *ip, char *port)
 {
     struct addrinfo hints, *res;
@@ -199,8 +160,6 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     if (getnameinfo((struct sockaddr *)their_addr, addr_size, hostName, NAMESIZE, serviceName, NAMESIZE, flags) == -1)
     {
         perror("GET NAME INFO");
-        close(sockfd);
-        close(clientfd);
         return -1;
     }
 
