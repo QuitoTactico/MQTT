@@ -99,6 +99,15 @@ void createConnectPayload(char *message)
 
             utfHandle(message, "will message: ", &offset);
         }
+        else
+        {
+            uint8_t i = 0;
+            memcpy(message + offset, &i, 1);
+            memcpy(message + offset + 1, &i, 1);
+            memcpy(message + offset + 2, &i, 1);
+            memcpy(message + offset + 3, &i, 1);
+            offset += 4;
+        }
 
         utfHandle(message, "user name: ", &offset);
 

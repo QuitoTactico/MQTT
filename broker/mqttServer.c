@@ -114,7 +114,7 @@ void handleConnect(char *args, int offset)
         printf("will topic size: %d\n", payload.willTopicSize);
         printf("will topic: %s\n", payload.willTopic);
     }
-    if (payload.willMessage != 0)
+    if (payload.willMessageSize != 0)
     {
         printf("will message size: %d\n", payload.willMessageSize);
         printf("will message: %s\n", payload.willMessage);
