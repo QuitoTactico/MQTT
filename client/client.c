@@ -9,11 +9,11 @@ int main(int argc, char *argv[])
 
     printf("Connect to the server\n\n");
 
-    createConnect(message);
+    //createConnect(message);
 
-    int sockfd = connectSocket(MY_IP, MY_PORT);
+    // int sockfd = connectSocket(MY_IP, MY_PORT);
 
-    send(sockfd, &message, 500, 0);
+    //send(sockfd, &message, 500, 0); 
 
     for (;;)
     {
@@ -26,25 +26,25 @@ int main(int argc, char *argv[])
         if (strcmp(answer, "publish") == 0)
         {
             createPublish(message);
-            send(sockfd, &message, 500, 0);
+            //send(sockfd, &message, 500, 0);
             printf("publish message sent\n");
         }
         else if (strcmp(answer, "subscribe") == 0)
         {
             createSubscribe(message);
-            send(sockfd, &message, 500, 0);
+            //send(sockfd, &message, 500, 0);
             printf("subscribe message sent\n");
         }
         else if (strcmp(answer, "exit") == 0)
         {
-            send(sockfd, "q\0", 2, 0);
-            send(sockfd, &message, 500, 0);
+            //send(sockfd, "q\0", 2, 0);
+            //send(sockfd, &message, 500, 0);
             printf("exiting the server\n");
             break;
         }
     }
 
-    close(sockfd);
+    //close(sockfd);
 
     return 0;
 }
