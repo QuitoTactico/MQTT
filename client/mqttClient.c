@@ -426,21 +426,22 @@ void createSubscribe(char *message){
     offset += 2;
     //VARIABLE HEADER
 
-    message[offset] = rand() % 256;
+    message[offset] = htons(rand() % 65500);
     offset += 1;
 
-    message[offset] = rand() % 256;
+    message[offset] = htons(rand() % 65500);
     offset += 1;
 
-    utfHandle(message, "TOPIC NAME: a/b", &offset);
-    //LENGTH MSB
-    message[offset] = 1;
-    offset += 1;
-    //LENGTH LSB
-    message[offset] = 1;
-    offset += 1;
+    memcpy(message + offset, &rem_lengt, 2);
 
-    printf("Put the level of QoS that you want to leave: 0 or 1");
+    offset += 2;
+
+    getchar();
+
+
+    utfHandle(message, "TOPIC NAME: ", &offset);
+
+    printf("Put the level of QoS that you want to leave: (0 or 1): ");
     scanf("%s", asnwer);
     getchar();
 
@@ -457,29 +458,17 @@ void createSubscribe(char *message){
     }
     printf("Do you want to put another topic? (0 no | 1 yes): ");
     scanf("%s", asnwer);
-    getchar();
     
     for(;;){
 
         if (strcmp(asnwer, "1") == 0)
         {
-            message[offset] = rand() % 256;
-            offset += 1;
-
-            message[offset] = rand() % 256;
-            offset += 1;
-
-            utfHandle(message, "TOPIC NAME: a/b", &offset);
-            //LENGTH MSB
-            message[offset] = 0;
-            offset += 1;
-            //LENGTH LSB
-            message[offset] = 0;
-            offset += 1;
-
-            printf("Put the level of QoS that you want to leave: 0 or 1");
-            scanf("%s", asnwer);
             getchar();
+            utfHandle(message, "TOPIC NAME: ", &offset);
+
+            printf("Put the level of QoS that you want to leave: (0 or 1): ");
+            scanf("%s", asnwer);
+            
 
             // QOS VALIDATION
             if (strcmp(asnwer, "0") == 0)
@@ -497,7 +486,6 @@ void createSubscribe(char *message){
         }
         printf("Do you want to put another topic? (0 no | 1 yes): ");
         scanf("%s", asnwer);
-        getchar();
     }
 
     for (size_t i = 0; i < offset; i++)
@@ -505,7 +493,7 @@ void createSubscribe(char *message){
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
 
-    
+
     
 
 
