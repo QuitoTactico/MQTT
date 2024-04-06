@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 
     printf("Connect to the server\n\n");
 
-    createConnectPayload(message);
+    createConnect(message);
 
     int sockfd = connectSocket(MY_IP, MY_PORT);
 
@@ -25,22 +25,23 @@ int main(int argc, char *argv[])
 
         if (strcmp(answer, "publish") == 0)
         {
+            createPublish(message);
+            send(sockfd, &message, 500, 0);
             printf("publish message sent\n");
         }
         else if (strcmp(answer, "subscribe") == 0)
         {
-
+            createSubscribe(message);
+            send(sockfd, &message, 500, 0);
             printf("subscribe message sent\n");
         }
         else if (strcmp(answer, "exit") == 0)
         {
             send(sockfd, "q\0", 2, 0);
+            send(sockfd, &message, 500, 0);
             printf("exiting the server\n");
             break;
         }
-
-
-        send(sockfd, answer, strlen(answer), 0);
     }
 
     close(sockfd);
