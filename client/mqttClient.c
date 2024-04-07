@@ -205,7 +205,7 @@ void createConnect(char *message)
     offset += 1;
 
     uint16_t rem_lengt = htons(120);
-    memcpy(message + offset, &rem_lengt, 2); //remaining length
+    memcpy(message + offset, &rem_lengt, 2); // remaining length
 
     offset += 2;
 
@@ -243,10 +243,16 @@ void createConnect(char *message)
     printf("Do you have a created session (0 no | 1 yes): ");
     scanf("%s", asnwer);
     getchar();
-
+    // IF THE SESSION DONT EXISTS
     if (strcmp(asnwer, "0") == 0)
     {
-        utfHandle(message, "ID: ", &offset);
+        // The ID is not included in the answer 0 (session does not exist)
+        uint8_t i = 0;
+        memcpy(message + offset, &i, 0);
+        memcpy(message + offset + 1, &i, 0);
+
+        offset += 2;
+        // utfHandle(message, "ID: ", &offset);
 
         char answerWill[20];
         printf("Do you want to leave the will flag (0 no | 1 yes): ");
@@ -268,10 +274,126 @@ void createConnect(char *message)
             memcpy(message + offset + 3, &i, 1);
             offset += 4;
         }
+        // QOS
+        printf("Put the level of QoS that you want to leave: (0 or 1): ");
+        scanf("%s", asnwer);
+        getchar();
+        // QOS VALIDATION
+        if (strcmp(asnwer, "0") == 0)
+        {
+            message[offset] = QOS0;
+            offset += 1;
+        }
+        else if (strcmp(asnwer, "1") == 0)
+        {
+            message[offset] = QOS1;
+            offset += 1;
+        }
+        // WILL RETAIN
+        printf("Put the level of retain that you want to leave: (0 or 1): ");
+        scanf("%s", asnwer);
+        getchar();
+        // FIXED HEADER
+        if (strcmp(asnwer, "0") == 0)
+        {
+            message[offset] = 0; // the message dont retain anything
 
-        utfHandle(message, "user name: ", &offset);
+            offset += 1;
+        }
+        else if (strcmp(asnwer, "1") == 0)
+        {
+            // FIXED HEADER
+            message[offset] = RETAIN; // the server must discard any previous message with the same topic
+            offset += 1;
+        }
 
-        utfHandle(message, "password: ", &offset);
+        printf("Do you want to leave the user name and password (0 no | 1 yes): ");
+        scanf("%s", asnwer);
+        getchar();
+        if (strcmp(asnwer, "1") == 0)
+        {
+            utfHandle(message, "user name: ", &offset);
+
+            utfHandle(message, "password: ", &offset);
+        }
+        else
+        {
+            uint8_t i = 0;
+            memcpy(message + offset, &i, 0);
+            memcpy(message + offset + 1, &i, 0);
+            offset += 2;
+        }
+
+        for (size_t i = 0; i < offset; i++)
+        {
+            printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
+        }
+        printf("\n\n");
+    }
+    // IF THE SESSION EXISTS
+    else
+    {
+        utfHandle(message, "ID: ", &offset); // the ID must be included in the answer 1 (session exists) if the session exists
+
+        char answerWill[20];
+        printf("Do you want to leave the will flag (0 no | 1 yes): ");
+        scanf("%s", answerWill);
+        getchar();
+
+        if (strcmp(answerWill, "1") == 0)
+        {
+            utfHandle(message, "will topic: ", &offset);
+
+            utfHandle(message, "will message: ", &offset);
+        }
+        else
+        {
+            uint8_t i = 0;
+            memcpy(message + offset, &i, 1);
+            memcpy(message + offset + 1, &i, 1);
+            memcpy(message + offset + 2, &i, 1);
+            memcpy(message + offset + 3, &i, 1);
+            offset += 4;
+        }
+        // QOS
+        printf("Put the level of QoS that you want to leave: (0 or 1): ");
+        scanf("%s", asnwer);
+        getchar();
+        // QOS VALIDATION
+        if (strcmp(asnwer, "0") == 0)
+        {
+            message[offset] = QOS0;
+            offset += 1;
+        }
+        else if (strcmp(asnwer, "1") == 0)
+        {
+            message[offset] = QOS1;
+            offset += 1;
+        }
+        // WILL RETAIN
+        printf("Put the level of retain that you want to leave: (0 or 1): ");
+        scanf("%s", asnwer);
+        getchar();
+        // FIXED HEADER
+        if (strcmp(asnwer, "0") == 0)
+        {
+            message[offset] = 0; // the message dont retain anything
+
+            offset += 1;
+        }
+        else if (strcmp(asnwer, "1") == 0)
+        {
+            // FIXED HEADER
+            message[offset] = RETAIN; // the server must discard any previous message with the same topic
+            offset += 1;
+        }
+        uint8_t i = 0;
+        memcpy(message + offset, &i, 0);
+        memcpy(message + offset + 1, &i, 0);
+        memcpy(message + offset + 2, &i, 0); //All 0´s because the user has his own ID that put before
+        memcpy(message + offset + 3, &i, 0);
+        offset += 4;
+
 
         for (size_t i = 0; i < offset; i++)
         {
@@ -409,7 +531,8 @@ void createPublish(char *message)
 /*                                         */
 /*******************************************/
 
-void createSubscribe(char *message){
+void createSubscribe(char *message)
+{
     int offset = 0;
     char asnwer[50];
     srand(time(NULL));
@@ -424,7 +547,7 @@ void createSubscribe(char *message){
     memcpy(message + offset, &rem_lengt, 2);
 
     offset += 2;
-    //VARIABLE HEADER
+    // VARIABLE HEADER
 
     message[offset] = htons(rand() % 65500);
     offset += 1;
@@ -437,7 +560,6 @@ void createSubscribe(char *message){
     offset += 2;
 
     getchar();
-
 
     utfHandle(message, "TOPIC NAME: ", &offset);
 
@@ -458,8 +580,9 @@ void createSubscribe(char *message){
     }
     printf("Do you want to put another topic? (0 no | 1 yes): ");
     scanf("%s", asnwer);
-    
-    for(;;){
+
+    for (;;)
+    {
 
         if (strcmp(asnwer, "1") == 0)
         {
@@ -468,7 +591,6 @@ void createSubscribe(char *message){
 
             printf("Put the level of QoS that you want to leave: (0 or 1): ");
             scanf("%s", asnwer);
-            
 
             // QOS VALIDATION
             if (strcmp(asnwer, "0") == 0)
@@ -481,7 +603,9 @@ void createSubscribe(char *message){
                 message[offset] = QOS1;
                 offset += 1;
             }
-        }else{
+        }
+        else
+        {
             break;
         }
         printf("Do you want to put another topic? (0 no | 1 yes): ");
@@ -492,18 +616,6 @@ void createSubscribe(char *message){
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
-
-
-    
-
-
-
-
-
-
-
-
-
 }
 
 //================================================================================================================
