@@ -56,6 +56,8 @@ typedef struct
 #define QOS2 0b00000100   // QOS 2
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
+handleFixHeader(char *message, uint8_t type);
+
 //================================================================================================================
 
 /*******************************************/
@@ -187,6 +189,15 @@ void utfHandle(char *message, char *type, int *offset)
         free(info);
     }
 }
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*               FIXED HEADER              */
+/*                                         */
+/*******************************************/
+
 handleFixHeader(char *message, uint8_t type)
 {
     message[0] = type;
@@ -284,7 +295,6 @@ void createConnect(char *message)
 
     offset += 2;
 
-    char asnwer[50];
     int answersession;
     printf("Do you have a created session (0 no | 1 yes): ");
     scanf("%d", &answersession);
@@ -380,113 +390,25 @@ void createConnect(char *message)
 void createPublish(char *message)
 {
     int offset = 0;
-    char asnwer[50];
+    handleFixHeader(message, PUBLISH);
+
+    offset += 3;
+
+    // variable header
+    utfHandle(message, "Topic: ", &offset);
+
     srand(time(NULL));
+    uint16_t identifier = htons(rand()%65500);
 
-    printf("Put the level of QoS that you want to leave: 0 or 1");
-    scanf("%s", asnwer);
-    getchar();
+    memcpy(message + offset, &identifier, 2);
+    offset += 2;
 
-    // QOS VALIDATION
-    if (strcmp(asnwer, "0") == 0)
+    // payload
+    utfHandle(message, "Data: ", &offset);
+    
+    for (size_t i = 0; i < offset; i++)
     {
-        printf("Put the level of retain that you want to leave: (0 or 1): ");
-        scanf("%s", asnwer);
-        getchar();
-        // FIXED HEADER
-        // RETAIN VALIDATION
-        if (strcmp(asnwer, "0") == 0)
-        {
-            message[0] = PUBLISH; // the message is not reatined in the server
-
-            offset += 1;
-        }
-        else if (strcmp(asnwer, "1") == 0)
-        {
-            // FIXED HEADER
-            message[0] = PUBLISH | RETAIN; // the message must store it and send it to the broker, showing it to the next subscriber
-        }
-
-        uint16_t rem_lengt = htons(120);
-        memcpy(message + offset, &rem_lengt, 2);
-
-        // VARIABLE HEADER
-        offset += 2;
-        message[3] = 0; // Length MSB (0)
-        message[4] = 3; // Length LSB (3)
-
-        offset += 2;
-
-        utfHandle(message, "TOPIC NAME: ", &offset);
-
-        message[offset] = 0;
-        offset += 1;
-
-        message[offset] = 10;
-        offset += 1;
-
-        // packet identifier
-        uint8_t i = 0;
-
-        memcpy(message + offset, &i, 0);
-        memcpy(message + offset + 1, &i, 0);
-
-        offset += 2;
-
-        // payload message
-        printf("Put the message below: ");
-        utfHandle(message, "MESSAGE: ", &offset);
-
-        for (size_t i = 0; i < offset; i++)
-        {
-            printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
-        }
-    }
-    else if (strcmp(asnwer, "1") == 0)
-    {
-        // FIXED HEADER
-        printf("Put the level of retain that you want to leave: (0 or 1): ");
-        scanf("%s", asnwer);
-        getchar();
-        // FIXED HEADER
-        if (strcmp(asnwer, "0") == 0)
-        {
-            message[0] = PUBLISH | QOS1; // the message dont retain anything
-
-            offset += 1;
-        }
-        else if (strcmp(asnwer, "1") == 0)
-        {
-            // FIXED HEADER
-            message[0] = PUBLISH | QOS1 | RETAIN; // the server must discard any previous message with the same topic
-            offset += 1;
-        }
-
-        uint16_t rem_lengt = htons(120);
-        memcpy(message + offset, &rem_lengt, 2);
-
-        // VARIABLE HEADER
-        offset += 2;
-        message[3] = 0; // Length MSB (0)
-        message[4] = 3; // Length LSB (3)
-
-        offset += 2;
-        utfHandle(message, "TOPIC NAME: ", &offset);
-
-        // packet identifier
-        message[offset] = rand() % 256;
-        offset += 1;
-
-        message[offset] = rand() % 256;
-        offset += 1;
-
-        printf("Put the message below: ");
-        utfHandle(message, "MESSAGE: ", &offset);
-
-        for (size_t i = 0; i < offset; i++)
-        {
-            printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
-        }
+        printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
 }
 //================================================================================================================
@@ -500,83 +422,49 @@ void createPublish(char *message)
 void createSubscribe(char *message)
 {
     int offset = 0;
-    char asnwer[50];
+    handleFixHeader(message, PUBLISH);
+
+    offset += 3;
+
+    // variable header
     srand(time(NULL));
+    uint16_t identifier = htons(rand()%65500);
 
-    // FIXED HEADER
-    message[0] = SUBSCRIBE;
-
-    offset += 1;
-
-    uint16_t rem_lengt = htons(120);
-
-    memcpy(message + offset, &rem_lengt, 2);
-
-    offset += 2;
-    // VARIABLE HEADER
-
-    message[offset] = htons(rand() % 65500);
-    offset += 1;
-
-    message[offset] = htons(rand() % 65500);
-    offset += 1;
-
-    memcpy(message + offset, &rem_lengt, 2);
-
+    memcpy(message + offset, &identifier, 2);
     offset += 2;
 
+    // payload
+    utfHandle(message, "Topic to subscribe: ", &offset);
+
+    unsigned int qos;
+    printf("Put the level of QoS (0 | 1): ");
+    scanf("%d", &qos);
     getchar();
 
-    utfHandle(message, "TOPIC NAME: ", &offset);
+    memcpy(message + offset, &qos, 1);
+    offset += 1;
 
-    printf("Put the level of QoS that you want to leave: (0 or 1): ");
-    scanf("%s", asnwer);
+    int answ;
+    printf("Do you want to subscribe to more topics (0 no | 1 yes): ");
+    scanf("%d", &answ);
     getchar();
 
-    // QOS VALIDATION
-    if (strcmp(asnwer, "0") == 0)
+    while (answ)
     {
-        message[offset] = QOS0;
+        utfHandle(message, "Topic to subscribe: ", &offset);
+
+        printf("Put the level of QoS (0 | 1): ");
+        scanf("%d", &qos);
+        getchar();
+
+        memcpy(message + offset, &qos, 1);
         offset += 1;
+
+        printf("Do you want to subscribe to more topics (0 no | 1 yes): ");
+        scanf("%d", &answ);
+        getchar();
     }
-    else if (strcmp(asnwer, "1") == 0)
-    {
-        message[offset] = QOS1;
-        offset += 1;
-    }
-    printf("Do you want to put another topic? (0 no | 1 yes): ");
-    scanf("%s", asnwer);
-
-    for (;;)
-    {
-
-        if (strcmp(asnwer, "1") == 0)
-        {
-            getchar();
-            utfHandle(message, "TOPIC NAME: ", &offset);
-
-            printf("Put the level of QoS that you want to leave: (0 or 1): ");
-            scanf("%s", asnwer);
-
-            // QOS VALIDATION
-            if (strcmp(asnwer, "0") == 0)
-            {
-                message[offset] = QOS0;
-                offset += 1;
-            }
-            else if (strcmp(asnwer, "1") == 0)
-            {
-                message[offset] = QOS1;
-                offset += 1;
-            }
-        }
-        else
-        {
-            break;
-        }
-        printf("Do you want to put another topic? (0 no | 1 yes): ");
-        scanf("%s", asnwer);
-    }
+    
 
     for (size_t i = 0; i < offset; i++)
     {
