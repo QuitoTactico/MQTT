@@ -7,8 +7,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#define MY_PORT "1883"
-#define MY_IP "54.196.182.249"
+#define BROKER_PORT "1883"
+#define BROKER_IP "54.92.146.43"    // IP broker Esteban "54.92.146.43" | IP broker Miguel "54.196.182.249"
 
 //================================================================================================================
 

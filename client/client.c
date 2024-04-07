@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 
     createConnect(message);
 
-    int sockfd = connectSocket(MY_IP, MY_PORT);
+    int sockfd = connectSocket(BROKER_IP, BROKER_PORT);
 
     send(sockfd, &message, 500, 0); 
 

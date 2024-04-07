@@ -200,6 +200,7 @@ void utfHandle(char *message, char *type, int *offset)
 
 handleFixHeader(char *message, uint8_t type)
 {
+    int offset = 0;
     message[0] = type;
 
     uint16_t rem_lengt = htons(120);
@@ -211,7 +212,8 @@ handleFixHeader(char *message, uint8_t type)
     getchar();
 
     if (qos) 
-        message |= QOS1;
+        //message |= QOS1;   anteriormente
+        message[0] |= QOS1;
 
     int retain;
     printf("Do you want a retain (0 no | 1 yes): ");
@@ -219,7 +221,8 @@ handleFixHeader(char *message, uint8_t type)
     getchar();
 
     if (retain)
-        message |= RETAIN;
+        //message |= RETAIN;  anteriormente
+        message[0] |= RETAIN;
 }
 //================================================================================================================
 
