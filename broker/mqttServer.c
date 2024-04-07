@@ -2,42 +2,14 @@
 
 //================================================================================================================
 
-/*
-    ====FIXE HEADER====
-
-    it is always in there
-
-    ====VARIABLE HEADER====
-
-    PUBLISH
-    PUBACK
-    PUBREC
-    PUBREL
-    PUBCOMP
-    SUBSCRIBE
-    SUBACK
-    UNSUBSCRIBE
-    UNSUBACK
-
-    ====PAYLOAD====
-
-    CONNECT     required
-    PUBLISH     optional
-    SUBSCRIBE   required
-    SUBACK      required
-    UNSUBSCRIBE required
-    UNSUBACK    required
-*/
-
-//================================================================================================================
-
 /*******************************************/
 /*                                         */
 /*               FIXED HEADER              */
 /*                                         */
 /*******************************************/
 
-typedef struct {
+typedef struct
+{
     uint8_t messageType;
     uint16_t remainingLenght;
 } fixedHeader;
@@ -48,29 +20,29 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
-#define FIXED   0b11110000
+#define FIXED 0b11110000
 
-#define CONNECT   0b00010000   // 1 || CONNECT     || CLIENT TO SERVER //
-#define CONNACK   0b00100000   // 2 || CONNECT ACK || SERVER TO CLIENT
-#define PUBLISH   0b00110000   // 3 || PUBLISH MESSAGE || BOTH WAYS
-#define PUBACK    0b01000000   // 4 || PUBLISH ACK     || BOTH WAYS
+#define CONNECT 0b00010000 // 1 || CONNECT     || CLIENT TO SERVER //
+#define CONNACK 0b00100000 // 2 || CONNECT ACK || SERVER TO CLIENT
+#define PUBLISH 0b00110000 // 3 || PUBLISH MESSAGE || BOTH WAYS
+#define PUBACK 0b01000000  // 4 || PUBLISH ACK     || BOTH WAYS
 
 // WILL NOT IMPLETEMT FOR NOW
-#define PUBREC    0b01010000   // 5 || PUBLISH RECIEVE  || BOTH WAYS
-#define PUBREL    0b01100000   // 6 || PUBLISH RELEASE  || BOTH WAYS
-#define PUBCOMP   0b01110000   // 7 || PUBLISH COMPLETE || BOTH WAYS
+#define PUBREC 0b01010000  // 5 || PUBLISH RECIEVE  || BOTH WAYS
+#define PUBREL 0b01100000  // 6 || PUBLISH RELEASE  || BOTH WAYS
+#define PUBCOMP 0b01110000 // 7 || PUBLISH COMPLETE || BOTH WAYS
 //************
 
-#define SUBSCRIBE 0b10000000   // 8 || SUBSCRIBE REQUEST || CLIENT TO SERVER
-#define SUBACK    0b10010000   // 9 || SUBSCRIBE ACK     || SERVER TO CLIENT
+#define SUBSCRIBE 0b10000000 // 8 || SUBSCRIBE REQUEST || CLIENT TO SERVER
+#define SUBACK 0b10010000    // 9 || SUBSCRIBE ACK     || SERVER TO CLIENT
 
 // WILL NOT IMPLETEMT FOR NOW
-#define UNSUBSCRIBE  0b10100000   // 10 || UNSUBSCRIBE REQUEST || CLIENT TO SERVER
-#define UNSUBACK     0b10110000   // 11 || UNSUBSCRIBE ACK     || SERVER TO CLIENT
-#define PINGREQ      0b11000000   // 12 || PING REQUEST  || CLIENT TO SERVER
-#define PINGRESP     0b11010000   // 13 || PING RESPONSE || SERVER TO CLIENT
-#define DISCONNECT   0b11100000   // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
-#define AUTH         0b11110000   // 15 || AUTENTICATION EXCHANGE  || BOTH WAYS
+#define UNSUBSCRIBE 0b10100000 // 10 || UNSUBSCRIBE REQUEST || CLIENT TO SERVER
+#define UNSUBACK 0b10110000    // 11 || UNSUBSCRIBE ACK     || SERVER TO CLIENT
+#define PINGREQ 0b11000000     // 12 || PING REQUEST  || CLIENT TO SERVER
+#define PINGRESP 0b11010000    // 13 || PING RESPONSE || SERVER TO CLIENT
+#define DISCONNECT 0b11100000  // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
+#define AUTH 0b11110000        // 15 || AUTENTICATION EXCHANGE  || BOTH WAYS
 //************
 
 /*******************************************/
@@ -79,8 +51,8 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
-#define DUP    0b00000001 // DUPLICATE DELIVERY PUBLISH
-#define QOS    0b00000110 // PUBLISH CUALITY OF SERVICE
+#define DUP 0b00000001    // DUPLICATE DELIVERY PUBLISH
+#define QOS 0b00000110    // PUBLISH CUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
 void handleFixedHeader(char *args);
@@ -93,7 +65,8 @@ void handleFixedHeader(char *args);
 /*                                         */
 /*******************************************/
 
-typedef struct {
+typedef struct
+{
     // 4
     uint16_t nameLenght;
     // "MQTT"
@@ -113,17 +86,17 @@ typedef struct {
 /*******************************************/
 
 // 1 for new session 0 for existing sessing if there are no previus sessions
-#define CLEANSTART  0b00000010
+#define CLEANSTART 0b00000010
 // 1 if the client wants to send others a message of a unespected disconection
-#define WILLFLAG    0b00000100
+#define WILLFLAG 0b00000100
 // 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
-#define WILLQOS     0b00011000
+#define WILLQOS 0b00011000
 // if 1 the server must return the message as a retainable message
-#define WILLRETAIN  0b00100000
+#define WILLRETAIN 0b00100000
 // if set to 1 the payload has the password
-#define PASSWORD    0b01000000
+#define PASSWORD 0b01000000
 // if set to 1 the payload has the username
-#define USERNAME    0b10000000
+#define USERNAME 0b10000000
 
 /*******************************************/
 /*                                         */
@@ -131,22 +104,23 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
-typedef struct {
+typedef struct
+{
     uint16_t clientIDSize;
-    char* clientID;
+    char *clientID;
     uint16_t willTopicSize;
-    char* willTopic;
+    char *willTopic;
     uint16_t willMessageSize;
-    char* willMessage;
+    char *willMessage;
     uint16_t userNameSize;
-    char* userName;
+    char *userName;
     uint16_t passWordSize;
-    char* passWord;
+    char *passWord;
 } connectPayload;
 
-void handleConnect(char* args, int offset);
-connectPayload readConnectPayload(char* args, int offset);
-void freeConnectPayload(connectPayload* payload);
+void handleConnect(char *args, int offset);
+connectPayload readConnectPayload(char *args, int offset);
+void freeConnectPayload(connectPayload *payload);
 
 //================================================================================================================
 
@@ -156,12 +130,12 @@ void freeConnectPayload(connectPayload* payload);
 /*                                         */
 /*******************************************/
 
-#define ACCEPTED                0b00000000
-#define REFUSED_VERSION         0b00000001
-#define REFUSED_IDENTIFIER      0b00000010
-#define REFUSED_SERVER_DOWN     0b00000011
+#define ACCEPTED 0b00000000
+#define REFUSED_VERSION 0b00000001
+#define REFUSED_IDENTIFIER 0b00000010
+#define REFUSED_SERVER_DOWN 0b00000011
 #define REFUSED_WRONG_USER_PASS 0b00000100
-#define REFUSED_NOT_AUTHORIZED  0b00000101
+#define REFUSED_NOT_AUTHORIZED 0b00000101
 
 //================================================================================================================
 
@@ -171,12 +145,12 @@ void freeConnectPayload(connectPayload* payload);
 /*                                         */
 /*******************************************/
 
-typedef struct {
-    uint16_t topicSize;
-    char* topic;
+typedef struct
+{
+    uint16_t size;
+    char *topic;
     uint16_t identifier;
 } publishVariableHeader;
-
 
 /*******************************************/
 /*                                         */
@@ -184,12 +158,13 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
-typedef struct {
-    uint16_t payloadSize;
-    char* data;
+typedef struct
+{
+    uint16_t size;
+    char *data;
 } publishPayload;
 
-void handlePublish(char* args, int offset);
+void handlePublish(char *args, int offset);
 
 //================================================================================================================
 
@@ -199,7 +174,8 @@ void handlePublish(char* args, int offset);
 /*                                         */
 /*******************************************/
 
-typedef struct {
+typedef struct
+{
     uint16_t identifier;
 } subscribeVariableHeader;
 
@@ -209,13 +185,36 @@ typedef struct {
 /*                                         */
 /*******************************************/
 
-typedef struct {
-    uint16_t payloadSize;
-    char* topic;
+struct subscribePayload
+{
+    uint16_t size;
+    char *topic;
     uint8_t qos;
-} subscribePayload;
+    struct subscribePayload *next;
+};
 
-void handleSubscribe(char* args, int offset);
+void handleSubscribe(char *args, int offset);
+void freeSubscribe(struct subscribePayload *sp);
+
+//================================================================================================================
+
+#define UTF_HANDLE(name, field, sizeField, args, offset)  \
+    memcpy(&(name.sizeField), args + offset, 2);           \
+    name.sizeField = ntohs(name.sizeField);                \
+                                                           \
+    offset += 2;                                           \
+                                                           \
+    if (name.sizeField != 0)                               \
+    {                                                      \
+        do                                                 \
+        {                                                  \
+            name.field = (char *)malloc(name.sizeField);   \
+        } while (name.field == NULL);                      \
+                                                           \
+        memcpy(name.field, args + offset, name.sizeField); \
+                                                           \
+        offset += name.sizeField;                          \
+    }
 
 //================================================================================================================
 
@@ -356,108 +355,23 @@ connectPayload readConnectPayload(char *args, int offset)
 
     //========client id size========
 
-    memcpy(&payload.clientIDSize, args + offset, 2);
-    payload.clientIDSize = ntohs(payload.clientIDSize);
-
-    offset += 2;
-
-    //========client id========
-
-    if (payload.clientIDSize != 0)
-    {
-        do
-        {
-            payload.clientID = (char *)malloc(payload.clientIDSize);
-        } while (payload.clientID == NULL);
-
-        memcpy(payload.clientID, args + offset, payload.clientIDSize);
-
-        offset += payload.clientIDSize;
-    }
+    UTF_HANDLE(payload, clientID, clientIDSize, args, offset);
 
     //========will topic size========
 
-    memcpy(&payload.willTopicSize, args + offset, 2);
-    payload.willTopicSize = ntohs(payload.willTopicSize);
-
-    offset += 2;
-
-    //========will topic========
-
-    if (payload.willTopicSize != 0)
-    {
-        do
-        {
-            payload.willTopic = (char *)malloc(payload.willTopicSize);
-        } while (payload.willTopic == NULL);
-
-        memcpy(payload.willTopic, args + offset, payload.willTopicSize);
-
-        offset += payload.willTopicSize;
-    }
+    UTF_HANDLE(payload, willTopic, willTopicSize, args, offset);
 
     //========will message size========
 
-    memcpy(&payload.willMessageSize, args + offset, 2);
-    payload.willMessageSize = ntohs(payload.willMessageSize);
-
-    offset += 2;
-
-    //========will message========
-
-    if (payload.willMessageSize != 0)
-    {
-        do
-        {
-            payload.willMessage = (char *)malloc(payload.willMessageSize);
-        } while (payload.willMessage == NULL);
-
-        memcpy(payload.willMessage, args + offset, payload.willMessageSize);
-
-        offset += payload.willMessageSize;
-    }
+    UTF_HANDLE(payload, willMessage, willMessageSize, args, offset);
 
     //========name size========
 
-    memcpy(&payload.userNameSize, args + offset, 2);
-    payload.userNameSize = ntohs(payload.userNameSize);
-
-    offset += 2;
-
-    //========name========
-
-    if (payload.userNameSize != 0)
-    {
-        do
-        {
-            payload.userName = (char *)malloc(payload.userNameSize);
-        } while (payload.userName == NULL);
-
-        memcpy(payload.userName, args + offset, payload.userNameSize);
-
-        offset += payload.userNameSize;
-    }
+    UTF_HANDLE(payload, userName, userNameSize, args, offset);
 
     //========password size========
 
-    memcpy(&payload.passWordSize, args + offset, 2);
-    payload.passWordSize = ntohs(payload.passWordSize);
-
-    offset += 2;
-
-    //========password========
-
-    if (payload.passWordSize != 0)
-    {
-        do
-        {
-            payload.passWord = (char *)malloc(payload.passWordSize);
-        } while (payload.passWord == NULL);
-
-        memcpy(payload.passWord, args + offset, payload.passWordSize);
-
-        offset += payload.passWordSize;
-    }
+    UTF_HANDLE(payload, userName, userNameSize, args, offset);
 
     return payload;
 }
@@ -486,19 +400,118 @@ void freeConnectPayload(connectPayload *payload)
 
 void handlePublish(char *args, int offset)
 {
+    publishVariableHeader variable;
 
+    UTF_HANDLE(variable, topic, size, args, offset);
+
+    memcpy(&variable.identifier, args + offset, 2);
+    variable.identifier = ntohs(variable.identifier);
+
+    offset += 2;
+
+    free(variable.topic);
+
+    publishPayload payload;
+
+    UTF_HANDLE(payload, data, size, args, offset);
+
+    free(payload.data);
 }
 
 //================================================================================================================
 
 /*******************************************/
 /*                                         */
-/*            SUBSCRIBE PAYLOAD            */
+/*                SUBSCRIBE                */
 /*                                         */
 /*******************************************/
 
 void handleSubscribe(char *args, int offset)
 {
+    subscribeVariableHeader variable;
+
+    memcpy(&variable.identifier, args + offset, 2);
+    variable.identifier = ntohs(variable.identifier);
+
+    offset += 2;
+
+    struct subscribePayload *payload;
+    do
+    {
+        payload = (struct subscribePayload *)malloc(sizeof(struct subscribePayload));
+    } while (payload == NULL);
+
+    memcpy(&(payload->size), args + offset, 2);
+    payload->size = ntohs(payload->size);
+
+    offset += 2;
+
+    if (payload->size != 0)
+    {
+        do
+        {
+            payload->topic = (char *)malloc(payload->size);
+        } while (payload->topic == NULL);
+
+        memcpy(payload->topic, args + offset, payload->size);
+
+        offset += payload->size;
+    }
+
+    memcpy(&variable.identifier, args + offset, 1);
+
+    offset += 1;
+
+    struct subscribePayload **head = &payload->next;
+
+    while ((args + offset) != 0 || (args + offset + 1) != 0)
+    {
+
+        do
+        {
+            *head = (struct subscribePayload *)malloc(sizeof(struct subscribePayload));
+        } while (payload == NULL);
+
+        memcpy(&(payload->size), args + offset, 2);
+        payload->size = ntohs(payload->size);
+
+        offset += 2;
+
+        if (payload->size != 0)
+        {
+            do
+            {
+                payload->topic = (char *)malloc(payload->size);
+            } while (payload->topic == NULL);
+
+            memcpy(payload->topic, args + offset, payload->size);
+
+            offset += payload->size;
+        }
+
+        memcpy(&variable.identifier, args + offset, 1);
+
+        offset += 1;
+
+        head = &(*head)->next;
+    }
+
+    freeSubscribe(payload);
+}
+
+void freeSubscribe(struct subscribePayload *sp)
+{
+    if (sp->next == NULL)
+    {
+        free(sp->topic);
+        free(sp);
+    }
+    else
+    {
+        freeSubscribe(sp->next);
+        free(sp->topic);
+        free(sp);
+    }
 }
 
 //================================================================================================================
