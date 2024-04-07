@@ -68,7 +68,7 @@ typedef struct
 // 1 if the client wants to send others a message of a unespected disconection
 #define WILLFLAG 0b00000100
 // 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
-#define WILLQOS 0b00011000
+#define WILLQOS 0b00001000
 // if 1 the server must return the message as a retainable message
 #define WILLRETAIN 0b00100000
 // if set to 1 the payload has the password
@@ -186,7 +186,30 @@ void utfHandle(char *message, char *type, int *offset)
         free(info);
     }
 }
+handleFixHeader(char *mensaje, uint8_t type)
+{
+    mensaje[0] = type;
 
+    offset += 1;
+
+    uint16_t rem_lengt = htons(120);
+
+    uint16_t rem_lengt = htons(120);
+    memcpy(message + offset, &rem_lengt, 2); // remaining length
+
+    offset += 2;
+
+    if (type == CONNECT)
+    {
+    }
+    else if (type == PUBLISH)
+    {
+    }
+    else if (type == SUBSCRIBE)
+    {
+        /* code */
+    }
+}
 //================================================================================================================
 
 /*******************************************/
@@ -197,17 +220,11 @@ void utfHandle(char *message, char *type, int *offset)
 
 void createConnect(char *message)
 {
+
     int offset = 0;
 
     // FIXED HEADER
-    message[0] = CONNECT;
-
-    offset += 1;
-
-    uint16_t rem_lengt = htons(120);
-    memcpy(message + offset, &rem_lengt, 2); // remaining length
-
-    offset += 2;
+    handleFixHeader(message, CONNECT);
 
     // VARIABLE HEADER
     uint16_t title_size = htons(4);
@@ -240,26 +257,84 @@ void createConnect(char *message)
 
     char asnwer[50];
 
+    int answersession;
+    int answerWill;
+    int answerQoS;
+    int answerRetain;
+
     printf("Do you have a created session (0 no | 1 yes): ");
-    scanf("%s", asnwer);
+    scanf("%d", &answersession);
     getchar();
-    // IF THE SESSION DONT EXISTS
-    if (strcmp(asnwer, "0") == 0)
+
+    printf("Do you want to leave the will flag (0 no | 1 yes): ");
+    scanf("%d", &answerWill);
+    getchar();
+    if (answerWill == 0)
     {
-        // The ID is not included in the answer 0 (session does not exist)
-        uint8_t i = 0;
-        memcpy(message + offset, &i, 0);
-        memcpy(message + offset + 1, &i, 0);
+    }
+    else if (answerWill == 1)
+    {
+        answerWill = WILLFLAG;
+    }
 
-        offset += 2;
-        // utfHandle(message, "ID: ", &offset);
+    printf("Put the level of QoS that you want to leave: (0 or 1): ");
+    scanf("%d", &answerQoS);
+    getchar();
+    if (answerQoS == 0)
+    {
+    }
+    else if (answerQoS == 1)
+    {
+        answerQoS = WILLQOS;
+    }
 
-        char answerWill[20];
-        printf("Do you want to leave the will flag (0 no | 1 yes): ");
-        scanf("%s", answerWill);
+    printf("Put the level of retain that you want to leave: (0 or 1): ");
+    scanf("%d", &answerRetain);
+    getchar();
+    if (answerRetain == 0)
+    {
+        answerRetain = 0;
+    }
+    else if (answerRetain == 1)
+    {
+        answerRetain = RETAIN;
+    }
+
+    // IF THE SESSION DONT EXISTS
+    if (answersession == 0)
+    {
+        // FLAGS
+        message[10] |= answerWill;
+
+        // QOS
+        message[10] |= answerQoS;
+        offset += 1;
+
+        // WILL RETAIN
+        message[10] |= answerRetain;
+        offset += 1;
+
+        printf("Do you want to leave the user name and password (0 no | 1 yes): ");
+        scanf("%s", asnwer);
         getchar();
+        if (strcmp(asnwer, "1") == 0)
+        {
+            uint8_t i = 0;
+            memcpy(message + 1, &i, 1);
+            memcpy(message + 2, &i, 1);
+            offset += 2;
 
-        if (strcmp(answerWill, "1") == 0)
+        }
+        else
+        {
+            uint8_t i = 0;
+            memcpy(message + 1, &i, 0);
+            memcpy(message + 2, &i, 0);
+            offset += 2;
+        }
+
+        // utfHandle(message, "ID: ", &offset);
+        if (answerWill == 0)
         {
             utfHandle(message, "will topic: ", &offset);
 
@@ -273,38 +348,6 @@ void createConnect(char *message)
             memcpy(message + offset + 2, &i, 1);
             memcpy(message + offset + 3, &i, 1);
             offset += 4;
-        }
-        // QOS
-        printf("Put the level of QoS that you want to leave: (0 or 1): ");
-        scanf("%s", asnwer);
-        getchar();
-        // QOS VALIDATION
-        if (strcmp(asnwer, "0") == 0)
-        {
-            message[offset] = QOS0;
-            offset += 1;
-        }
-        else if (strcmp(asnwer, "1") == 0)
-        {
-            message[offset] = QOS1;
-            offset += 1;
-        }
-        // WILL RETAIN
-        printf("Put the level of retain that you want to leave: (0 or 1): ");
-        scanf("%s", asnwer);
-        getchar();
-        // FIXED HEADER
-        if (strcmp(asnwer, "0") == 0)
-        {
-            message[offset] = 0; // the message dont retain anything
-
-            offset += 1;
-        }
-        else if (strcmp(asnwer, "1") == 0)
-        {
-            // FIXED HEADER
-            message[offset] = RETAIN; // the server must discard any previous message with the same topic
-            offset += 1;
         }
 
         printf("Do you want to leave the user name and password (0 no | 1 yes): ");
@@ -390,10 +433,9 @@ void createConnect(char *message)
         uint8_t i = 0;
         memcpy(message + offset, &i, 0);
         memcpy(message + offset + 1, &i, 0);
-        memcpy(message + offset + 2, &i, 0); //All 0´s because the user has his own ID that put before
+        memcpy(message + offset + 2, &i, 0); // All 0´s because the user has his own ID that put before
         memcpy(message + offset + 3, &i, 0);
         offset += 4;
-
 
         for (size_t i = 0; i < offset; i++)
         {
