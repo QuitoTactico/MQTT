@@ -56,7 +56,7 @@ typedef struct
 #define QOS2 0b00000100   // QOS 2
 #define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
-handleFixHeader(char *message, uint8_t type);
+int handleFixHeader(char *message, uint8_t type);
 
 //================================================================================================================
 
@@ -198,7 +198,7 @@ void utfHandle(char *message, char *type, int *offset)
 /*                                         */
 /*******************************************/
 
-handleFixHeader(char *message, uint8_t type)
+int handleFixHeader(char *message, uint8_t type)
 {
     message[0] = type;
 
@@ -222,6 +222,7 @@ handleFixHeader(char *message, uint8_t type)
     if (retain)
         //message |= RETAIN;  anteriormente
         message[0] |= RETAIN;
+    return qos;
 }
 //================================================================================================================
 
@@ -231,11 +232,11 @@ handleFixHeader(char *message, uint8_t type)
 /*                                         */
 /*******************************************/
 
-void createConnect(char *message)
+int createConnect(char *message)
 {
 
     int offset = 0;
-
+    int answerQoS;
     // FIXED HEADER
     handleFixHeader(message, CONNECT);
 
@@ -269,7 +270,7 @@ void createConnect(char *message)
     {
         message[10] |= WILLFLAG;
 
-        int answerQoS;
+
         printf("Put the level of QoS for the WILL (0 or 1): ");
         scanf("%d", &answerQoS);
         getchar();
@@ -378,7 +379,7 @@ void createConnect(char *message)
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
     printf("\n\n");
-    
+    return answerQoS;
 }
 
 //================================================================================================================
@@ -389,10 +390,10 @@ void createConnect(char *message)
 /*                                         */
 /*******************************************/
 
-void createPublish(char *message)
+int createPublish(char *message)
 {
     int offset = 0;
-    handleFixHeader(message, PUBLISH);
+    int qos = handleFixHeader(message, PUBLISH);
 
     offset += 3;
 
@@ -412,6 +413,7 @@ void createPublish(char *message)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
+    return qos;
 }
 //================================================================================================================
 
@@ -421,10 +423,10 @@ void createPublish(char *message)
 /*                                         */
 /*******************************************/
 
-void createSubscribe(char *message)
+int createSubscribe(char *message)
 {
     int offset = 0;
-    handleFixHeader(message, PUBLISH);
+    int resQos = handleFixHeader(message, SUBSCRIBE);
 
     offset += 3;
 
@@ -438,7 +440,7 @@ void createSubscribe(char *message)
     // payload
     utfHandle(message, "Topic to subscribe: ", &offset);
 
-    unsigned int qos;
+    int qos;
     printf("Put the level of QoS (0 | 1): ");
     scanf("%d", &qos);
     getchar();
@@ -472,6 +474,7 @@ void createSubscribe(char *message)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
+    return resQos;
 }
 
 //================================================================================================================

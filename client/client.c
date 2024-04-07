@@ -13,11 +13,15 @@ int main(int argc, char *argv[])
 
     printf("Connecting to the broker\n\n");
 
-    createConnect(message);
+    int connectQos = createConnect(message);
 
     int sockfd = connectSocket(broker_ip, BROKER_PORT);
 
     send(sockfd, &message, 500, 0); 
+    if (connectQos){
+        recv(sockfd, &message, 500, 0);
+    }
+
 
     for (;;)
     {
@@ -29,15 +33,22 @@ int main(int argc, char *argv[])
 
         if (strcmp(answer, "publish") == 0)
         {
-            createPublish(message);
+            int publishQos = createPublish(message);
             send(sockfd, &message, 500, 0);
             printf("publish message sent\n");
+            if(publishQos){
+                recv(sockfd, &message, 500, 0);
+            }
+            
         }
         else if (strcmp(answer, "subscribe") == 0)
         {
-            createSubscribe(message);
+            int subscribeqos = createSubscribe(message);
             send(sockfd, &message, 500, 0);
             printf("subscribe message sent\n");
+            if (subscribeqos){
+                recv(sockfd, &message, 500, 0);
+            }
         }
         else if (strcmp(answer, "exit") == 0)
         {
