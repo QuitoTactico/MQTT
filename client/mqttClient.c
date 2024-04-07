@@ -200,11 +200,10 @@ void utfHandle(char *message, char *type, int *offset)
 
 handleFixHeader(char *message, uint8_t type)
 {
-    int offset = 0;
     message[0] = type;
 
     uint16_t rem_lengt = htons(120);
-    memcpy(message + offset, &rem_lengt, 2); // remaining length
+    memcpy(message + 1, &rem_lengt, 2); // remaining length
 
     int qos;
     printf("Do you want a QoS (0 no | 1 yes): ");
