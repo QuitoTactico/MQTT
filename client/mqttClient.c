@@ -50,10 +50,11 @@ typedef struct
 /*******************************************/
 
 #define DUP 0b00000001    // DUPLICATE DELIVERY PUBLISH
-#define QOS 0b00000110    // PUBLISH CUALITY OF SERVICE -> 2
-#define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
+#define QOS 0b00000110    // PUBLISH CUALITY OF SERVICE 3 is reserved
 #define QOS0 0b00000000   // QOS 0
 #define QOS1 0b00000010   // QOS 1
+#define QOS2 0b00000100   // QOS 2
+#define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
 
 //================================================================================================================
 
@@ -68,7 +69,7 @@ typedef struct
 // 1 if the client wants to send others a message of a unespected disconection
 #define WILLFLAG 0b00000100
 // 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
-#define WILLQOS 0b00001000
+#define WILLQOS1 0b00001000
 // if 1 the server must return the message as a retainable message
 #define WILLRETAIN 0b00100000
 // if set to 1 the payload has the password
@@ -186,29 +187,28 @@ void utfHandle(char *message, char *type, int *offset)
         free(info);
     }
 }
-handleFixHeader(char *mensaje, uint8_t type)
+handleFixHeader(char *message, uint8_t type)
 {
-    mensaje[0] = type;
-
-    offset += 1;
-
-    uint16_t rem_lengt = htons(120);
+    message[0] = type;
 
     uint16_t rem_lengt = htons(120);
     memcpy(message + offset, &rem_lengt, 2); // remaining length
 
-    offset += 2;
+    int qos;
+    printf("Do you want a QoS (0 no | 1 yes): ");
+    scanf("%d", &qos);
+    getchar();
 
-    if (type == CONNECT)
-    {
-    }
-    else if (type == PUBLISH)
-    {
-    }
-    else if (type == SUBSCRIBE)
-    {
-        /* code */
-    }
+    if (qos) 
+        message |= QOS1;
+
+    int retain;
+    printf("Do you want a retain (0 no | 1 yes): ");
+    scanf("%d", &retain);
+    getchar();
+
+    if (retain)
+        message |= RETAIN;
 }
 //================================================================================================================
 
@@ -225,6 +225,8 @@ void createConnect(char *message)
 
     // FIXED HEADER
     handleFixHeader(message, CONNECT);
+
+    offset += 3;
 
     // VARIABLE HEADER
     uint16_t title_size = htons(4);
@@ -246,7 +248,7 @@ void createConnect(char *message)
 
     // FLAGS
     int answerWill;
-    printf("Do you want to leave the will flag (0 no | 1 yes): ");
+    printf("Do you want a Will (0 no | 1 yes): ");
     scanf("%d", &answerWill);
     getchar();
 
@@ -255,15 +257,15 @@ void createConnect(char *message)
         message[10] |= WILLFLAG;
 
         int answerQoS;
-        printf("Put the level of QoS that you want to leave: (0 or 1): ");
+        printf("Put the level of QoS for the WILL (0 or 1): ");
         scanf("%d", &answerQoS);
         getchar();
 
         if (answerQoS)
-            message[10] |= WILLQOS;
+            message[10] |= WILLQOS1;
 
         int answerRetain;
-        printf("Put the level of retain that you want to leave: (0 or 1): ");
+        printf("Do you want a retain for your Will (0 no | 1 yes): ");
         scanf("%d", &answerRetain);
         getchar();
 
@@ -299,28 +301,10 @@ void createConnect(char *message)
             utfHandle(message, "will topic: ", &offset);
 
             utfHandle(message, "will message: ", &offset);
-
-            // no password or name
-            memcpy(message + offset, &i, 1);
-            offset += 1;
-            memcpy(message + offset, &i, 1);
-            offset += 1;
-            memcpy(message + offset, &i, 1);
-            offset += 1;
-            memcpy(message + offset, &i, 1);
-            offset += 1;
         }
         else
         {
-            // no password or name or will
-            memcpy(message + offset, &i, 1);
-            offset += 1;
-            memcpy(message + offset, &i, 1);
-            offset += 1;
-            memcpy(message + offset, &i, 1);
-            offset += 1;
-            memcpy(message + offset, &i, 1);
-            offset += 1;
+            // no will
             memcpy(message + offset, &i, 1);
             offset += 1;
             memcpy(message + offset, &i, 1);
@@ -330,6 +314,16 @@ void createConnect(char *message)
             memcpy(message + offset, &i, 1);
             offset += 1;
         }
+
+        //no password or username
+        memcpy(message + offset, &i, 1);
+        offset += 1;
+        memcpy(message + offset, &i, 1);
+        offset += 1;
+        memcpy(message + offset, &i, 1);
+        offset += 1;
+        memcpy(message + offset, &i, 1);
+        offset += 1;
     }
     else
     {
