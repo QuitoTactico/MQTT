@@ -266,7 +266,7 @@ void handleFixedHeader(char *args)
         printf("############################\n\n");
 
         printf("information: %s", args);
-        printf("received message%s", header.messageType)
+        printf("received message%s", header.messageType);
         break;
     }
 }

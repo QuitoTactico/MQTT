@@ -6,12 +6,16 @@ int main(int argc, char *argv[])
     char answer[20];
     char message[500];
     char anssession[50];
+    char broker_ip[30];
 
-    printf("Connect to the server\n\n");
+    printf("Enter the broker IP: ");
+    scanf("%s", broker_ip);
+
+    printf("Connecting to the broker\n\n");
 
     createConnect(message);
 
-    int sockfd = connectSocket(BROKER_IP, BROKER_PORT);
+    int sockfd = connectSocket(broker_ip, BROKER_PORT);
 
     send(sockfd, &message, 500, 0); 
 
