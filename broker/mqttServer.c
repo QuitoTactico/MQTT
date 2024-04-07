@@ -439,22 +439,7 @@ void handleSubscribe(char *args, int offset)
 
     while((args + offset) != 0 || (args + offset + 1) != 0 && amount_sub < 20)
     {
-        memcpy(&(payload[amount_sub].size), args + offset, 2);
-        payload[amount_sub].size = ntohs(payload[amount_sub].size);
-
-        offset += 2;
-
-        if (payload[amount_sub].size != 0)
-        {
-            do
-            {
-                payload[amount_sub].topic = (char *)malloc(payload[amount_sub].size);
-            } while (payload[amount_sub].topic == NULL);
-
-            memcpy(payload[amount_sub].topic, args + offset, payload[amount_sub].size);
-
-            offset += payload[amount_sub].size;
-        }
+        UTF_HANDLE(payload[amount_sub], topic, size, args, offset);
 
         memcpy(&payload[amount_sub].qos, args + offset, 1);
 
