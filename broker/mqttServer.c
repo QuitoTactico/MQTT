@@ -118,6 +118,7 @@ typedef struct
     char *passWord;
 } connectPayload;
 
+void createConnack(char* connackMessage, char *userName, char *passWord);
 void handleConnect(char *args, int offset, int sockfd);
 connectPayload readConnectPayload(char *args, int offset);
 void freeConnectPayload(connectPayload *payload);
@@ -318,6 +319,7 @@ void createConnack(char* connackMessage, char *userName, char *passWord)
 
 void createConnack(char* connackMessage, char *userName, char *passWord)
 {
+    printf("Creating connack\n");
     // Tipo de mensaje
     connackMessage[0] = 0x20;
 
@@ -409,12 +411,17 @@ void handleConnect(char *args, int offset, int sockfd)
         printf("password: %s\n", payload.passWord);
     }
 
+    printf("1");
     char connackMessage[4];
+    printf("2");
     createConnack(connackMessage, payload.userName, payload.passWord);
+    printf("3");
 
     //int connackLength = strlen(connackMessage);
     //printf("Connack length: %d", connackLength);
+    printf("4");
     int result = send(sockfd, connackMessage, 4, 0);
+    printf("5");
     if (result == -1) {
         perror("Sending connack failed\n");
     }
