@@ -11,7 +11,7 @@
 typedef struct
 {
     uint8_t messageType;
-    uint16_t remainingLenght;
+    uint32_t remainingLenght;
 } fixedHeader;
 
 /*******************************************/
@@ -200,23 +200,40 @@ void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount);
 
 //================================================================================================================
 
-void encodeRemainingLength(int length, char *output) {
-    int digit;
-    int pos = 0;
+uint32_t remainingOffset(uint32_t value)
+{
+    if (value <= 0xFF) {
+        return 1;
+    } else if (value <= 0xFFFF) {
+        return 2;
+    } else if (value <= 0xFFFFFF) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
+uint32_t decodeRemainingLength(const char* buffer) {
+    uint32_t value = 0;
+    uint32_t multiplier = 1;
+    size_t index = 0;
 
     do {
-        digit = length % 128;
-        length = length / 128;
-        // Si hay más dígitos, establece el bit más significativo de este dígito
-        if (length > 0) {
-            digit = digit | 0x80;
+        uint8_t encodedByte = buffer[index++];
+        value += (encodedByte & 127) * multiplier;
+
+        multiplier *= 128;
+        if (multiplier > 128*128*128) {
+            fprintf(stderr, "remaining length malformado en el paquete MQTT\n");
+            return 0;
         }
-        output[pos++] = digit;
-    } while (length > 0);
+    } while ((buffer[index-1] & 128) != 0);
+
+    return value;
 }
 
 // macro for the utf handling of inputs
-#define UTF_HANDLE(name, field, sizeField, args, offset)  \
+#define UTF_HANDLE(name, field, sizeField, args, offset)   \
     memcpy(&(name.sizeField), args + offset, 2);           \
     name.sizeField = ntohs(name.sizeField);                \
                                                            \
@@ -249,9 +266,10 @@ void handleFixedHeader(char *args, int sockfd)
 
     memcpy(&header.messageType, args + offset, 1);
     offset += 1;
-    memcpy(&header.remainingLenght, args + offset, 2);
-    header.remainingLenght = ntohs(header.remainingLenght);
-    offset += 2;
+    
+    header.remainingLenght =  decodeRemainingLength(args + 1);
+
+    offset += remainingOffset(header.remainingLenght);
 
     switch (header.messageType & FIXED)
     {
@@ -447,6 +465,8 @@ void sendConnack(int sockfd)
 
 void handlePublish(char *args, int offset, int sockfd)
 {
+    // publish variable header
+
     publishVariableHeader variable;
 
     UTF_HANDLE(variable, topic, size, args, offset);
@@ -456,9 +476,13 @@ void handlePublish(char *args, int offset, int sockfd)
 
     offset += 2;
 
+    // publish payload
+
     publishPayload payload;
 
     UTF_HANDLE(payload, data, size, args, offset);
+
+    // printing information
 
     if(variable.size !=0)
     {
@@ -533,6 +557,7 @@ void handleSubscribe(char *args, int offset, int sockfd)
     {
         printf("subscribe topic size: %d\n", payload[i].size);
         printf("subscribe topic: %s\n", payload[i].topic);
+        printf("subscribe topic qos: %d\n", payload[i].qos);
     }
 
     freeSubscribe(payload, amount_sub);
