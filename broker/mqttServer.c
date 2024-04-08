@@ -460,10 +460,8 @@ void handleSubscribe(char *args, int offset)
         amount_sub += 1;
     }
 
-    if(variable.size !=0)
-    {
-        printf("subscribe id: %d\n", variable.identifier);
-    }
+    printf("subscribe id: %d\n", variable.identifier);
+
     for (int i = amount_sub; i >= 0; i--)
     {
         printf("subscribe topic size: %d\n", payload[i].size);
