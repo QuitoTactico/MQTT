@@ -55,3 +55,12 @@ int connectSocket(char* port, char* ip);
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
 
 int handleRequest(void *args);
+
+
+// connack return codes
+#define ACCEPTED 0b00000000
+#define REFUSED_VERSION 0b00000001
+#define REFUSED_IDENTIFIER 0b00000010
+#define REFUSED_SERVER_DOWN 0b00000011
+#define REFUSED_WRONG_USER_PASS 0b00000100
+#define REFUSED_NOT_AUTHORIZED 0b00000101

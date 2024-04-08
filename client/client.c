@@ -7,6 +7,7 @@ int main(int argc, char *argv[])
     char message[500];
     char anssession[50];
     char broker_ip[30];
+    char connack[500];
 
     printf("Enter the broker IP: ");
     scanf("%s", broker_ip);
@@ -18,8 +19,25 @@ int main(int argc, char *argv[])
     int sockfd = connectSocket(broker_ip, BROKER_PORT);
 
     send(sockfd, &message, 500, 0); 
-    if (connectQos){
-        recv(sockfd, &message, 500, 0);
+    
+    // receive connack
+    recv(sockfd, &connack, 500, 0);
+
+    printf("connack received\n");
+
+    if(connack[1] == 0x00)
+    {
+        printf("Connection accepted\n");
+    }
+    else
+    {
+        printf("Connection refused\n");
+        printf("Response code: %02X\n", (unsigned char)connack[1]);
+        return 1;
+    }
+    for (size_t i = 0; i < 8*4; i++) // 8 bits * 4 bytes. 4 bytes is the size of the connack message
+    {
+        printf("%02X ", (unsigned char)connack[i]); // Cast char to unsigned char for correct output
     }
 
 

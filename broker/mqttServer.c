@@ -55,7 +55,7 @@ typedef struct
 #define QOS 0b00000110    // PUBLISH QUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETAINED MESSAGE FLAG
 
-void handleFixedHeader(char *args);
+void handleFixedHeader(char *args, int sockfd);
 
 //================================================================================================================
 
@@ -118,7 +118,7 @@ typedef struct
     char *passWord;
 } connectPayload;
 
-void handleConnect(char *args, int offset);
+void handleConnect(char *args, int offset, int sockfd);
 connectPayload readConnectPayload(char *args, int offset);
 void freeConnectPayload(connectPayload *payload);
 
@@ -164,7 +164,7 @@ typedef struct
     char *data;
 } publishPayload;
 
-void handlePublish(char *args, int offset);
+void handlePublish(char *args, int offset, int sockfd);
 
 //================================================================================================================
 
@@ -192,7 +192,7 @@ typedef struct
     uint8_t qos;
 } subscribePayload;
 
-void handleSubscribe(char *args, int offset);
+void handleSubscribe(char *args, int offset, int sockfd);
 void freeSubscribe(subscribePayload *sp, int amount);
 
 //================================================================================================================
@@ -224,7 +224,7 @@ void freeSubscribe(subscribePayload *sp, int amount);
 /*                                         */
 /*******************************************/
 
-void handleFixedHeader(char *args)
+void handleFixedHeader(char *args, int sockfd)
 {
     int offset = 0;
     fixedHeader header;
@@ -242,21 +242,21 @@ void handleFixedHeader(char *args)
         printf("####### user connecting #######\n");
         printf("###############################\n\n");
 
-        handleConnect(args, offset);
+        handleConnect(args, offset, sockfd);
         break;
     case PUBLISH:
         printf("###############################\n");
         printf("####### user publishing #######\n");
         printf("###############################\n\n");
 
-        handlePublish(args, offset);
+        handlePublish(args, offset, sockfd);
         break;
     case SUBSCRIBE:
         printf("################################\n");
         printf("####### user subscribing #######\n");
         printf("################################\n\n");
 
-        handleSubscribe(args, offset);
+        handleSubscribe(args, offset, sockfd);
         break;
     default:
         printf("############################\n");
@@ -276,16 +276,16 @@ void handleFixedHeader(char *args)
 /*                 CONNECT                 */
 /*                                         */
 /*******************************************/
-void connack(char *message)
+void createConnack(char* connackMessage, char *userName, char *passWord)
 {
-    int offset;
+    int offset = 0;
     //FIXED HEADER
-    message[0] = CONNACK;
+    connackMessage[0] = CONNACK;
 
-    offset += 3;
+    offset += 1;
 
-    uint16_t rem_lengt = htons(120);
-    memcpy(message + 1, &rem_lengt, 2); // remaining length
+    uint16_t rem_lengt = htons(2);
+    memcpy(connackMessage + 1, &rem_lengt, 2); // remaining length
 
     offset += 2;
     uint8_t i = 0;
@@ -295,24 +295,23 @@ void connack(char *message)
     //memcpy(message + offset, &i, 1);
     //offset += 1;
     //sino, se queda en 0, no pasa nada
-    memcpy(message + offset, &i, 1);
+    memcpy(connackMessage + offset, &i, 1);
     offset += 1;
 
     //return code
     uint8_t returnCode = ACCEPTED;
     //VALIDATE RETURN CODE TO PUT ANOTHER ONE
 
-    memcpy(message + offset, &returnCode, 1);
+    memcpy(connackMessage + offset, &returnCode, 1);
 
     //print
     for (size_t i = 0; i < offset; i++)
     {
-        printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
+        printf("%02X ", (unsigned char)connackMessage[i]); // Cast char to unsigned char for correct output
     }
-
 }
 
-void handleConnect(char *args, int offset)
+void handleConnect(char *args, int offset, int sockfd)
 {
     connectVariableHeader variable;
 
@@ -331,27 +330,27 @@ void handleConnect(char *args, int offset)
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
-        printf("clean start\n");
+        printf("-clean start-\n");
     }
     if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
     {
-        printf("will flags\n");
+        printf("-has will flags-\n");
     }
     if ((variable.connectFlags & WILLQOS) == WILLQOS)
     {
-        printf("will qos\n");
+        printf("-has will qos-\n");
     }
     if ((variable.connectFlags & WILLRETAIN) == WILLRETAIN)
     {
-        printf("will retain\n");
+        printf("-has will retain-\n");
     }
     if ((variable.connectFlags & PASSWORD) == PASSWORD)
     {
-        printf("password\n");
+        printf("-has password-\n");
     }
     if ((variable.connectFlags & USERNAME) == USERNAME)
     {
-        printf("username\n");
+        printf("-has username-\n");
     }
 
     connectPayload payload = readConnectPayload(args, offset);
@@ -382,6 +381,9 @@ void handleConnect(char *args, int offset)
         printf("password: %s\n", payload.passWord);
     }
 
+    char connackMessage[120];
+    createConnack(connackMessage, payload.userName, payload.passWord);
+    send(sockfd, &connackMessage, 500, 0);
 
     freeConnectPayload(&payload);
 }
@@ -435,7 +437,7 @@ void freeConnectPayload(connectPayload *payload)
 /*                                         */
 /*******************************************/
 
-void handlePublish(char *args, int offset)
+void handlePublish(char *args, int offset, int sockfd)
 {
     publishVariableHeader variable;
 
@@ -473,7 +475,7 @@ void handlePublish(char *args, int offset)
 /*                                         */
 /*******************************************/
 
-void handleSubscribe(char *args, int offset)
+void handleSubscribe(char *args, int offset, int sockfd)
 {
     subscribeVariableHeader variable;
 
@@ -634,7 +636,7 @@ int handleRecv(void *args)
         if (buf[0] == 'q')
             break;
 
-        handleFixedHeader(buf);
+        handleFixedHeader(buf, sockfd);
 
         memset(buf, 0, len);
     }
