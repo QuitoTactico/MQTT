@@ -264,7 +264,11 @@ void handleFixedHeader(char *args, int sockfd)
         printf("############################\n\n");
 
         printf("information: %s", args);
-        printf("received message%d", header.messageType);
+        printf("received message: ");
+        for (int i = 7; i >= 0; i--) {
+            printf("%d", (header.messageType >> i) & 1);
+        }
+        printf("\n");
         break;
     }
 }
