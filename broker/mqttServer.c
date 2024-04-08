@@ -414,20 +414,19 @@ void handleConnect(char *args, int offset, int sockfd)
         printf("password: %s\n", payload.passWord);
     }
 
-    printf("1");
-    char connackMessage[4] = {0};
-    printf("2");
+    // initialize the connack message. It will be 4 bytes long. Initialized with zeros to avoid garbage values
+    char connackMessage[4] = {0};   // for other ack messages, you will need to know the size of your message
+                                    // and strlen only works if there's a Null terminator at some point.
+                                    // so it's better to NOT initialize the message with zeros in other contexts
+    // create the connack message
     createConnack(connackMessage, payload.userName, payload.passWord);
-    printf("3");
-
-    //int connackLength = strlen(connackMessage);
-    //printf("Connack length: %d", connackLength);
-    printf("4");
+    // send the connack message
     int result = send(sockfd, connackMessage, 4, 0);
-    printf("5");
+    // check if the message was sent successfully
     if (result == -1) {
         perror("Sending connack failed\n");
     }
+
     freeConnectPayload(&payload);
 }
 
@@ -641,14 +640,14 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
 
 int handleRecv(void *args)
 {
-    int sockfd = *(int *)args;
+    int brokersockfd = *(int *)args;
 
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
 
-    int clientfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+    int clientsockfd = accept(brokersockfd, (struct sockaddr *)&their_addr, &addr_size);
 
-    if (clientfd == -1)
+    if (clientsockfd == -1)
     {
         perror("ACCEPT");
         return 1;
@@ -656,9 +655,9 @@ int handleRecv(void *args)
 
     printf("####### connection accepted #######\n\n");
 
-    if (printSocketInfo(sockfd, clientfd, &their_addr, addr_size) < 0)
+    if (printSocketInfo(brokersockfd, clientsockfd, &their_addr, addr_size) < 0)
     {
-        close(clientfd);
+        close(clientsockfd);
         return 1;
     }
 
@@ -670,7 +669,7 @@ int handleRecv(void *args)
 
     while (buf[0] != 'q')
     {
-        recv(clientfd, buf, len, 0);
+        recv(clientsockfd, buf, len, 0);
 
         printf("===== time %d =====\n\n", num);
         num++;
@@ -679,7 +678,7 @@ int handleRecv(void *args)
         if (buf[0] == 'q')
             break;
 
-        handleFixedHeader(buf, clientfd);
+        handleFixedHeader(buf, clientsockfd);
 
         memset(buf, 0, len);
     }
@@ -688,7 +687,7 @@ int handleRecv(void *args)
 
     memset(buf, 0, len);
 
-    close(clientfd);
+    close(clientsockfd);
 
     return 0;
 }
