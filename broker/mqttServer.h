@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #define MY_PORT "1883"
 #define MY_IP ""
