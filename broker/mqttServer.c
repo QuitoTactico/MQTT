@@ -280,6 +280,7 @@ void handleFixedHeader(char *args, int sockfd)
 /*                 CONNECT                 */
 /*                                         */
 /*******************************************/
+/*
 void createConnack(char* connackMessage, char *userName, char *passWord)
 {
     int offset = 0;
@@ -310,6 +311,29 @@ void createConnack(char* connackMessage, char *userName, char *passWord)
 
     //print
     for (size_t i = 0; i < offset; i++)
+    {
+        printf("%02X ", (unsigned char)connackMessage[i]); // Cast char to unsigned char for correct output
+    }
+}*/
+
+void createConnack(char* connackMessage, char *userName, char *passWord)
+{
+    // Tipo de mensaje
+    connackMessage[0] = 0x20;
+
+    // Longitud restante
+    connackMessage[1] = 0x02;
+
+    // Bandera de sesión presente
+    // Aquí asumimos que no hay sesión presente
+    connackMessage[2] = 0x00;
+
+    // Código de retorno
+    // Aquí asumimos que la conexión fue aceptada
+    // Deberías cambiar esto si hay un error
+    connackMessage[3] = 0x00;
+
+    for (size_t i = 0; i < 4; i++)
     {
         printf("%02X ", (unsigned char)connackMessage[i]); // Cast char to unsigned char for correct output
     }
@@ -385,12 +409,12 @@ void handleConnect(char *args, int offset, int sockfd)
         printf("password: %s\n", payload.passWord);
     }
 
-    char connackMessage[120];
+    char connackMessage[4];
     createConnack(connackMessage, payload.userName, payload.passWord);
 
-    int connackLength = strlen(connackMessage);
-    printf("connack length: %d", connackLength);
-    int result = send(sockfd, connackMessage, 8, 0);
+    //int connackLength = strlen(connackMessage);
+    //printf("Connack length: %d", connackLength);
+    int result = send(sockfd, connackMessage, 4, 0);
     if (result == -1) {
         perror("Sending connack failed\n");
     }
