@@ -185,17 +185,15 @@ typedef struct
 /*                                         */
 /*******************************************/
 
-struct subscribePayload
+typedef struct
 {
     uint16_t size;
     char *topic;
     uint8_t qos;
-    struct subscribePayload *next;
-};
+} subscribePayload;
 
 void handleSubscribe(char *args, int offset);
-void appendSubscribes(char *args, int* offset, struct subscribePayload *next);
-void freeSubscribe(struct subscribePayload *sp);
+void freeSubscribe(subscribePayload *sp, int amount);
 
 //================================================================================================================
 
@@ -438,83 +436,30 @@ void handleSubscribe(char *args, int offset)
 
     offset += 2;
 
-    struct subscribePayload payload;
+    subscribePayload payload[20];
+    int amount_sub = 0;
 
-    memcpy(&payload.size, args + offset, 2);
-    payload.size = ntohs(payload.size);
-
-    offset += 2;
-
-    if (payload.size != 0)
+    while((args + offset) != 0 || (args + offset + 1) != 0 && amount_sub < 20)
     {
-        do
-        {
-            payload.topic = (char *)malloc(payload.size);
-        } while (payload.topic == NULL);
+        UTF_HANDLE(payload[amount_sub], topic, size, args, offset);
 
-        memcpy(payload.topic, args + offset, payload.size);
+        memcpy(&payload[amount_sub].qos, args + offset, 1);
 
-        offset += payload.size;
+        offset += 1;
+
+        amount_sub += 1;
     }
 
-    memcpy(&payload.qos, args + offset, 1);
-
-    offset += 1;
-
-    appendSubscribes(args, &offset, payload.next);
-
-    freeSubscribe(payload.next);
-
-    free(payload.topic);
+    freeSubscribe(payload, amount_sub);
 }
 
-void appendSubscribes(char *args, int* offset, struct subscribePayload *next)
+void freeSubscribe(subscribePayload *sp, int amount)
 {
-    if ((args + *offset) != 0 || (args + *offset + 1) != 0)
+    while (amount >= 0)
     {
-        do
-        {
-            next = (struct subscribePayload *)malloc(sizeof(struct subscribePayload));
-        } while (next == NULL);
-
-        memcpy(&(next->size), args + *offset, 2);
-        next->size = ntohs(next->size);
-
-        *offset += 2;
-
-        if (next->size != 0)
-        {
-            do
-            {
-                next->topic = (char *)malloc(next->size);
-            } while (next->topic == NULL);
-
-            memcpy(next->topic, args + *offset, next->size);
-
-            *offset += next->size;
-        }
-
-        memcpy(&next->qos, args + *offset, 1);
-
-        *offset += 1;
-
-        appendSubscribes(args, offset, next->next);
+        free(sp[amount].topic);
     }
-}
-
-void freeSubscribe(struct subscribePayload *sp)
-{
-    if (sp->next == NULL)
-    {
-        free(sp->topic);
-        free(sp);
-    }
-    else
-    {
-        freeSubscribe(sp->next);
-        free(sp->topic);
-        free(sp);
-    }
+    
 }
 
 //================================================================================================================
