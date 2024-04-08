@@ -23,20 +23,20 @@ int main(int argc, char *argv[])
     // receive connack
     recv(sockfd, &connack, 500, 0);
 
-    printf("connack received\n");
+    printf("Connack received: ");
+    for (size_t i = 0; i < 8*4; i++) // 8 bits * 4 bytes. 4 bytes is the size of the connack message
+    {
+        printf("%02X ", (unsigned char)connack[i]); // Cast char to unsigned char for correct output
+    }
 
     if(connack[1] == 0x00)
     {
-        printf("Connection accepted\n");
+        printf("\nConnection accepted\n");
     }
     else
     {
-        printf("Connection refused\n");
+        printf("\nConnection refused\n");
         printf("Response code: %02X\n", (unsigned char)connack[1]);
-        for (size_t i = 0; i < 8*4; i++) // 8 bits * 4 bytes. 4 bytes is the size of the connack message
-        {
-            printf("%02X ", (unsigned char)connack[i]); // Cast char to unsigned char for correct output
-        }
         return 1;
     }
 

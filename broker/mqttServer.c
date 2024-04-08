@@ -387,8 +387,10 @@ void handleConnect(char *args, int offset, int sockfd)
 
     char connackMessage[120];
     createConnack(connackMessage, payload.userName, payload.passWord);
-    send(sockfd, &connackMessage, 500, 0);
 
+    int connackLength = strlen(connackMessage);
+    send(sockfd, &connackMessage, connackLength, 0);
+    
     freeConnectPayload(&payload);
 }
 
