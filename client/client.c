@@ -6,12 +6,16 @@ int main(int argc, char *argv[])
     char answer[20];
     char message[500];
     char anssession[50];
+    char broker_ip[30];
 
-    printf("Connect to the server\n\n");
+    printf("Enter the broker IP: ");
+    scanf("%s", broker_ip);
+
+    printf("Connecting to the broker\n\n");
 
     createConnect(message);
 
-    int sockfd = connectSocket(MY_IP, MY_PORT);
+    int sockfd = connectSocket(broker_ip, BROKER_PORT);
 
     send(sockfd, &message, 500, 0); 
 
@@ -26,19 +30,19 @@ int main(int argc, char *argv[])
         if (strcmp(answer, "publish") == 0)
         {
             createPublish(message);
-            //send(sockfd, &message, 500, 0);
+            send(sockfd, &message, 500, 0);
             printf("publish message sent\n");
         }
         else if (strcmp(answer, "subscribe") == 0)
         {
             createSubscribe(message);
-            //send(sockfd, &message, 500, 0);
+            send(sockfd, &message, 500, 0);
             printf("subscribe message sent\n");
         }
         else if (strcmp(answer, "exit") == 0)
         {
             send(sockfd, "q\0", 2, 0);
-            //send(sockfd, &message, 500, 0);
+            send(sockfd, &message, 500, 0);  //si se comenta, el broker igual señala un "####### client gone #######"
             printf("exiting the server\n");
             break;
         }

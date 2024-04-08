@@ -203,7 +203,7 @@ handleFixHeader(char *message, uint8_t type)
     message[0] = type;
 
     uint16_t rem_lengt = htons(120);
-    memcpy(message + offset, &rem_lengt, 2); // remaining length
+    memcpy(message + 1, &rem_lengt, 2); // remaining length
 
     int qos;
     printf("Do you want a QoS (0 no | 1 yes): ");
@@ -211,7 +211,8 @@ handleFixHeader(char *message, uint8_t type)
     getchar();
 
     if (qos) 
-        message |= QOS1;
+        //message |= QOS1;   anteriormente
+        message[0] |= QOS1;
 
     int retain;
     printf("Do you want a retain (0 no | 1 yes): ");
@@ -219,7 +220,8 @@ handleFixHeader(char *message, uint8_t type)
     getchar();
 
     if (retain)
-        message |= RETAIN;
+        //message |= RETAIN;  anteriormente
+        message[0] |= RETAIN;
 }
 //================================================================================================================
 

@@ -27,8 +27,8 @@ typedef struct
 #define PUBLISH 0b00110000 // 3 || PUBLISH MESSAGE || BOTH WAYS
 #define PUBACK 0b01000000  // 4 || PUBLISH ACK     || BOTH WAYS
 
-// WILL NOT IMPLETEMT FOR NOW
-#define PUBREC 0b01010000  // 5 || PUBLISH RECIEVE  || BOTH WAYS
+// WILL NOT IMPLEMENT FOR NOW
+#define PUBREC 0b01010000  // 5 || PUBLISH RECEIVE  || BOTH WAYS
 #define PUBREL 0b01100000  // 6 || PUBLISH RELEASE  || BOTH WAYS
 #define PUBCOMP 0b01110000 // 7 || PUBLISH COMPLETE || BOTH WAYS
 //************
@@ -36,13 +36,13 @@ typedef struct
 #define SUBSCRIBE 0b10000000 // 8 || SUBSCRIBE REQUEST || CLIENT TO SERVER
 #define SUBACK 0b10010000    // 9 || SUBSCRIBE ACK     || SERVER TO CLIENT
 
-// WILL NOT IMPLETEMT FOR NOW
-#define UNSUBSCRIBE 0b10100000 // 10 || UNSUBSCRIBE REQUEST || CLIENT TO SERVER
-#define UNSUBACK 0b10110000    // 11 || UNSUBSCRIBE ACK     || SERVER TO CLIENT
-#define PINGREQ 0b11000000     // 12 || PING REQUEST  || CLIENT TO SERVER
-#define PINGRESP 0b11010000    // 13 || PING RESPONSE || SERVER TO CLIENT
+// WILL NOT IMPLEMENT FOR NOW
+#define UNSUBSCRIBE 0b10100000 // 10 || UNSUBSCRIBE REQUEST     || CLIENT TO SERVER
+#define UNSUBACK 0b10110000    // 11 || UNSUBSCRIBE ACK         || SERVER TO CLIENT
+#define PINGREQ 0b11000000     // 12 || PING REQUEST            || CLIENT TO SERVER
+#define PINGRESP 0b11010000    // 13 || PING RESPONSE           || SERVER TO CLIENT
 #define DISCONNECT 0b11100000  // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
-#define AUTH 0b11110000        // 15 || AUTENTICATION EXCHANGE  || BOTH WAYS
+#define AUTH 0b11110000        // 15 || AUTHENTICATION EXCHANGE || BOTH WAYS
 //************
 
 /*******************************************/
@@ -52,8 +52,8 @@ typedef struct
 /*******************************************/
 
 #define DUP 0b00000001    // DUPLICATE DELIVERY PUBLISH
-#define QOS 0b00000110    // PUBLISH CUALITY OF SERVICE
-#define RETAIN 0b00001000 // PUBLISH RETEINED MESSAGE FLAG
+#define QOS 0b00000110    // PUBLISH QUALITY OF SERVICE
+#define RETAIN 0b00001000 // PUBLISH RETAINED MESSAGE FLAG
 
 void handleFixedHeader(char *args);
 
@@ -75,7 +75,7 @@ typedef struct
     uint8_t version;
     // type of connection
     uint8_t connectFlags;
-    // the time in seconds between each user mqtt packet transmition
+    // the time in seconds between each user mqtt packet transmission
     uint16_t keepAlive;
 } connectVariableHeader;
 
@@ -85,11 +85,11 @@ typedef struct
 /*                                         */
 /*******************************************/
 
-// 1 for new session 0 for existing sessing if there are no previus sessions
+// 1 for new session 0 for existing session if there are no previous sessions
 #define CLEANSTART 0b00000010
-// 1 if the client wants to send others a message of a unespected disconection
+// 1 if the client wants to send others a message of a unexpected disconection
 #define WILLFLAG 0b00000100
-// 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
+// 1 | 2 | 3 depending on the level of assurance that the user wants if the will flag is set to 1
 #define WILLQOS 0b00011000
 // if 1 the server must return the message as a retainable message
 #define WILLRETAIN 0b00100000
@@ -197,6 +197,7 @@ void freeSubscribe(subscribePayload *sp, int amount);
 
 //================================================================================================================
 
+// macro for the utf handling of inputs
 #define UTF_HANDLE(name, field, sizeField, args, offset)  \
     memcpy(&(name.sizeField), args + offset, 2);           \
     name.sizeField = ntohs(name.sizeField);                \
@@ -263,6 +264,7 @@ void handleFixedHeader(char *args)
         printf("############################\n\n");
 
         printf("information: %s", args);
+        printf("received message%s", header.messageType);
         break;
     }
 }
@@ -302,7 +304,7 @@ void handleConnect(char *args, int offset)
     }
     if ((variable.connectFlags & WILLQOS) == WILLQOS)
     {
-        printf("will q0s\n");
+        printf("will qos\n");
     }
     if ((variable.connectFlags & WILLRETAIN) == WILLRETAIN)
     {
@@ -310,11 +312,11 @@ void handleConnect(char *args, int offset)
     }
     if ((variable.connectFlags & PASSWORD) == PASSWORD)
     {
-        printf("pass word\n");
+        printf("password\n");
     }
     if ((variable.connectFlags & USERNAME) == USERNAME)
     {
-        printf("user name\n");
+        printf("username\n");
     }
 
     connectPayload payload = readConnectPayload(args, offset);
