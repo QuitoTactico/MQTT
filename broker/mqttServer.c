@@ -679,7 +679,7 @@ int handleRecv(void *args)
         if (buf[0] == 'q')
             break;
 
-        handleFixedHeader(buf, sockfd);
+        handleFixedHeader(buf, clientfd);
 
         memset(buf, 0, len);
     }
