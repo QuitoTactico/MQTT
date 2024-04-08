@@ -446,12 +446,22 @@ void handlePublish(char *args, int offset)
 
     offset += 2;
 
-    free(variable.topic);
-
     publishPayload payload;
 
     UTF_HANDLE(payload, data, size, args, offset);
 
+    if(variable.size !=0)
+    {
+        printf("publish topic size: %d\n", variable.size);
+        printf("publish topic: %s\n", variable.topic);
+    }
+    if(payload.size !=0)
+    {
+        printf("publish data size: %d\n", payload.size);
+        printf("publish data: %s\n", payload.data);
+    }
+
+    free(variable.topic);
     free(payload.data);
 }
 
@@ -484,6 +494,14 @@ void handleSubscribe(char *args, int offset)
         offset += 1;
 
         amount_sub += 1;
+    }
+
+    printf("subscribe id: %d\n", variable.identifier);
+
+    for (int i = amount_sub; i >= 0; i--)
+    {
+        printf("subscribe topic size: %d\n", payload[i].size);
+        printf("subscribe topic: %s\n", payload[i].topic);
     }
 
     freeSubscribe(payload, amount_sub);
