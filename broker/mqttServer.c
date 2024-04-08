@@ -389,7 +389,8 @@ void handleConnect(char *args, int offset, int sockfd)
     createConnack(connackMessage, payload.userName, payload.passWord);
 
     int connackLength = strlen(connackMessage);
-    int result = send(sockfd, connackMessage, connackLength, 0);
+    printf("connack length: %d", connackLength);
+    int result = send(sockfd, connackMessage, 8, 0);
     if (result == -1) {
         perror("Sending connack failed\n");
     }
