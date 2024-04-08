@@ -410,7 +410,7 @@ connectPayload readConnectPayload(char *args, int offset)
 
     //========password size========
 
-    UTF_HANDLE(payload, passWord, userNameSize, args, offset);
+    UTF_HANDLE(payload, passWord, passWordSize, args, offset);
 
     return payload;
 }
