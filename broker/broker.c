@@ -15,11 +15,13 @@ int main(int argc, char *argv[])
 
     thrd_create(&server, handleServer, 0);
 
+    thrd_t t[QUEUESIZE];
+
     while (close_server())
     {
-        thrd_t t[QUEUESIZE];
-
-        for (int i = 0; i < QUEUESIZE; i++) thrd_create(t + i, handleRecv, &sockfd);
+        for (int i = 0; i < QUEUESIZE; i++) {
+            thrd_create(t + i, handleRecv, &sockfd);
+        }
 
         for (int i = 0; i < QUEUESIZE; i++)
         {
@@ -28,7 +30,7 @@ int main(int argc, char *argv[])
             if (res == -1) printf("error");
         }
     }
-    
+
     thrd_join(server, &res);
 
     close(sockfd);
