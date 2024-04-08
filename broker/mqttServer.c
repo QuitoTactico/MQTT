@@ -334,11 +334,14 @@ void createConnack(char* connackMessage, char *userName, char *passWord)
     // Aquí asumimos que la conexión fue aceptada
     // Deberías cambiar esto si hay un error
     connackMessage[3] = 0x00;
+    printf("Finishing connack\n");
 
+    /*
     for (size_t i = 0; i < 4; i++)
     {
         printf("%02X ", (unsigned char)connackMessage[i]); // Cast char to unsigned char for correct output
     }
+    */
 }
 
 void handleConnect(char *args, int offset, int sockfd)
@@ -412,7 +415,7 @@ void handleConnect(char *args, int offset, int sockfd)
     }
 
     printf("1");
-    char connackMessage[4];
+    char connackMessage[4] = {0};
     printf("2");
     createConnack(connackMessage, payload.userName, payload.passWord);
     printf("3");
