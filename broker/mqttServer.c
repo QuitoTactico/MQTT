@@ -276,6 +276,41 @@ void handleFixedHeader(char *args)
 /*                 CONNECT                 */
 /*                                         */
 /*******************************************/
+void connack(char *message)
+{
+    int offset;
+    //FIXED HEADER
+    message[0] = CONNACK;
+
+    offset += 3;
+
+    uint16_t rem_lengt = htons(120);
+    memcpy(message + 1, &rem_lengt, 2); // remaining length
+
+    offset += 2;
+    uint8_t i = 0;
+    //VARIABLE HEADER
+    //verifySession
+    //if cleansession == 1:
+    //memcpy(message + offset, &i, 1);
+    //offset += 1;
+    //sino, se queda en 0, no pasa nada
+    memcpy(message + offset, &i, 1);
+    offset += 1;
+
+    //return code
+    uint8_t returnCode = ACCEPTED;
+    //VALIDATE RETURN CODE TO PUT ANOTHER ONE
+
+    memcpy(message + offset, &returnCode, 1);
+
+    //print
+    for (size_t i = 0; i < offset; i++)
+    {
+        printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
+    }
+
+}
 
 void handleConnect(char *args, int offset)
 {
@@ -347,6 +382,7 @@ void handleConnect(char *args, int offset)
         printf("password: %s\n", payload.passWord);
     }
 
+
     freeConnectPayload(&payload);
 }
 
@@ -372,7 +408,7 @@ connectPayload readConnectPayload(char *args, int offset)
 
     //========password size========
 
-    UTF_HANDLE(payload, userName, userNameSize, args, offset);
+    UTF_HANDLE(payload, passWord, userNameSize, args, offset);
 
     return payload;
 }
