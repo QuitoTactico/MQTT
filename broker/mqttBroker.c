@@ -248,7 +248,7 @@ uint32_t decodeRemainingLength(const char* buffer) {
                                                                 \
         memcpy(name.field, args + offset, name.sizeField);      \
                                                                 \
-        name.field[name.sizeField] = '\0';
+        name.field[name.sizeField] = '\0';                      \
                                                                 \
         offset += name.sizeField;                               \
     }
