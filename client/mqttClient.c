@@ -314,7 +314,8 @@ int createConnect(char *message)
     printf("Do you have a created session (0 no | 1 yes): ");
     scanf("%d", &answersession);
     getchar();
-        
+    
+    // ========== ID ==========
     if (answersession)
     {
         utfHandle(variableAndPayload, "ID: ", &offset);
@@ -326,6 +327,7 @@ int createConnect(char *message)
         offset += 2;
     }
 
+    // ========== WILL ==========
     if(answerWill)
     {
         utfHandle(variableAndPayload, "will topic: ", &offset);
@@ -339,7 +341,14 @@ int createConnect(char *message)
         offset += 4;
     }
 
-    if (!answersession)
+    // ========== USERNAME AND PASSWORD ==========
+    if (answersession)
+    {
+        uint32_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 4);
+        offset += 4;
+    }
+    else
     {
         variableAndPayload[flags] |= USERNAME;
         variableAndPayload[flags] |= PASSWORD;
@@ -347,12 +356,6 @@ int createConnect(char *message)
         utfHandle(variableAndPayload, "user name: ", &offset);
 
         utfHandle(variableAndPayload, "password: ", &offset);
-    }
-    else
-    {
-        uint32_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 4);
-        offset += 4;
     }
 
     int remainingLengthSize = encodeRemainingLength(offset, message + 1);
