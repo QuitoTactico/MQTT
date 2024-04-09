@@ -45,13 +45,13 @@ int main(int argc, char *argv[])
 
         if (strcmp(answer, "publish") == 0)
         {
-            int publishQos = createPublish(message);
+            Resultpub publishResponse = createPublish(message);
             send(sockfd, &message, 500, 0);
             printf("publish message sent\n");
-            if (publishQos)
+            if (publishResponse.resQos)
             {
                 recv(sockfd, puback, 4, 0);
-                handlepuback(puback);
+                handlepuback(puback, publishResponse.id);
             }
         }
         else if (strcmp(answer, "subscribe") == 0)

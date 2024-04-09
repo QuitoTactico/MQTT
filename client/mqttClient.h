@@ -27,9 +27,12 @@ int createConnect(char *message);
 /*                PUBLISH                  */
 /*                                         */
 /*******************************************/
-
+typedef struct {
+    uint16_t id;
+    int resQos;
+} Resultpub;
 int handlepuback(char *connack,uint16_t identifier);
-int createPublish(char *message);
+Resultpub createPublish(char *message);
 
 //================================================================================================================
 

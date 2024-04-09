@@ -402,23 +402,23 @@ int handleconnack(char *connack)
 {
     switch (connack[3])
     {
-    case: ACCEPTED
-        print("Connection accepted\n");
+    case ACCEPTED :
+        printf("Connection accepted\n");
         return 1;
-    case: REFUSED_VERSION:
-        print("Connection refused: Unacceptable protocol version\n");
+    case REFUSED_VERSION :
+        printf("Connection refused: Unacceptable protocol version\n");
         return 0;
-    case: REFUSED_IDENTIFIER:
-        print("Connection refused: Unacceptable Identifier  \n");
+    case REFUSED_IDENTIFIER:
+        printf("Connection refused: Unacceptable Identifier  \n");
         return 0;
-    case: REFUSED_SERVER_DOWN:
-        print("Connection refused: Server going down\n");
+    case REFUSED_SERVER_DOWN:
+        printf("Connection refused: Server going down\n");
         return 0;
-    case: REFUSED_WRONG_USER_PASS:
-        print("Connection refused: Unacceptable username or password\n");
+    case REFUSED_WRONG_USER_PASS:
+        printf("Connection refused: Unacceptable username or password\n");
         return 0;
-    case: REFUSED_NOT_AUTHORIZED:
-        print("Connection refused: The Client's provided Client_Identifier is not allowed by the server.\n");
+    case REFUSED_NOT_AUTHORIZED:
+        printf("Connection refused: The Client's provided Client_Identifier is not allowed by the server.\n");
         return 0;   
     default:
         perror("Connection refused: Unknown error\n");
@@ -438,8 +438,9 @@ int handleconnack(char *connack)
 /*                                         */
 /*******************************************/
 
-int createPublish(char *message)
+Resultpub createPublish(char *message)
 {
+    Resultpub result;
     char variableAndPayload[500];
 
     int qos = handleFixHeader(message, PUBLISH);
@@ -471,7 +472,9 @@ int createPublish(char *message)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
-    return qos;
+    result.id = id;
+    result.resQos = qos;
+    return result;
 }
 
 int handlepuback(char *connack,uint16_t identifier)
