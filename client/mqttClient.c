@@ -188,6 +188,10 @@ void utfHandle(char *message, char *type, int *offset)
         *offset += lenInfo;
         free(info);
     }
+    else
+    {
+        printf("Error reading line\n");
+    }
 }
 
 int encodeRemainingLength(int length, char *output) {
@@ -417,16 +421,15 @@ Resultpub createPublish(char *message)
 
     int qos = handleFixHeader(message, PUBLISH);
 
-    int offset = 0;
-
-    // variable header
-    utfHandle(variableAndPayload, "Topic: ", &offset);
-
-    // variable header
     uint16_t id;
     printf("Select a packet identifier: ");
     scanf("%d", &id);
     getchar();
+
+    int offset = 0;
+
+    // variable header
+    utfHandle(variableAndPayload, "Topic: ", &offset);
 
     uint16_t identifier = htons(id);
     memcpy(variableAndPayload + offset, &identifier, 2);
