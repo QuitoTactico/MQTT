@@ -17,7 +17,7 @@
 /*                 CONNECT                 */
 /*                                         */
 /*******************************************/
-
+int handleconnack(char *connack);
 int createConnect(char *message);
 
 //================================================================================================================
@@ -28,6 +28,7 @@ int createConnect(char *message);
 /*                                         */
 /*******************************************/
 
+int handlepuback(char *connack,uint16_t identifier);
 int createPublish(char *message);
 
 //================================================================================================================
@@ -37,8 +38,13 @@ int createPublish(char *message);
 /*               SUBSCRIBE                 */
 /*                                         */
 /*******************************************/
-
-int createSubscribe(char *message);
+typedef struct {
+    uint16_t id;
+    int resQos;
+    int counter;
+} Result;
+Result createSubscribe(char *message);
+int handlesuback(char *suback, int counter, uint16_t id);
 
 //================================================================================================================
 

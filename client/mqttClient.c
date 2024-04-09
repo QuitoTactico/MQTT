@@ -190,6 +190,23 @@ void utfHandle(char *message, char *type, int *offset)
     }
 }
 
+int encodeRemainingLength(int length, char *output) {
+    int digit;
+    int pos = 0;
+
+    do {
+        digit = length % 128;
+        length = length / 128;
+        // Si hay más dígitos, establece el bit más significativo de este dígito
+        if (length > 0) {
+            digit = digit | 128;
+        }
+        output[pos++] = digit;
+    } while (length > 0);
+
+    return pos;
+}
+
 //================================================================================================================
 
 /*******************************************/
@@ -201,9 +218,6 @@ void utfHandle(char *message, char *type, int *offset)
 int handleFixHeader(char *message, uint8_t type)
 {
     message[0] = type;
-
-    uint16_t rem_lengt = htons(120);
-    memcpy(message + 1, &rem_lengt, 2); // remaining length
 
     int qos;
     printf("Do you want a QoS (0 no | 1 yes): ");
@@ -224,6 +238,7 @@ int handleFixHeader(char *message, uint8_t type)
         message[0] |= RETAIN;
     return qos;
 }
+
 //================================================================================================================
 
 /*******************************************/
@@ -234,33 +249,30 @@ int handleFixHeader(char *message, uint8_t type)
 
 int createConnect(char *message)
 {
-
-    int offset = 0;
+    char variableAndPayload[500];
+    
     int answerQoS;
     // FIXED HEADER
     handleFixHeader(message, CONNECT);
 
-    offset += 3;
+    int offset = 0;
 
     // VARIABLE HEADER
     uint16_t title_size = htons(4);
-    memcpy(message + offset, &title_size, 2);
+    memcpy(variableAndPayload + offset, &title_size, 2);
 
     offset += 2;
 
-    message[5] = 'M';
-    message[6] = 'Q';
-    message[7] = 'T';
-    message[8] = 'T';
-
-    offset += 4;
+    variableAndPayload[offset++] = 'M';
+    variableAndPayload[offset++] = 'Q';
+    variableAndPayload[offset++] = 'T';
+    variableAndPayload[offset++] = 'T';
 
     // VERSION 3.1.1
-    message[9] = 4;
-
-    offset += 1;
+    variableAndPayload[offset++] = 4;
 
     // FLAGS
+    int flags = offset;
     int answerWill;
     printf("Do you want a Will (0 no | 1 yes): ");
     scanf("%d", &answerWill);
@@ -268,7 +280,7 @@ int createConnect(char *message)
 
     if (answerWill)
     {
-        message[10] |= WILLFLAG;
+        variableAndPayload[flags] |= WILLFLAG;
 
 
         printf("Put the level of QoS for the WILL (0 or 1): ");
@@ -276,7 +288,7 @@ int createConnect(char *message)
         getchar();
 
         if (answerQoS)
-            message[10] |= WILLQOS1;
+            variableAndPayload[flags] |= WILLQOS1;
 
         int answerRetain;
         printf("Do you want a retain for your Will (0 no | 1 yes): ");
@@ -284,17 +296,17 @@ int createConnect(char *message)
         getchar();
 
         if (answerRetain)
-            message[10] |= RETAIN;
+            variableAndPayload[flags] |= RETAIN;
     }
     else{
-        message[10] = 0;
+        variableAndPayload[flags] = 0;
     }
 
-    offset += 1;
+    offset++;
 
     // KEEP ALIVE
     uint16_t keep_alive = htons(60);
-    memcpy(message + offset, &keep_alive, 2);
+    memcpy(variableAndPayload + offset, &keep_alive, 2);
 
     offset += 2;
 
@@ -305,74 +317,78 @@ int createConnect(char *message)
         
     if (answersession)
     {
-        utfHandle(message, "ID: ", &offset);
+        utfHandle(variableAndPayload, "ID: ", &offset);
 
         uint8_t i = 0;
 
         if(answerWill)
         {
-            utfHandle(message, "will topic: ", &offset);
+            utfHandle(variableAndPayload, "will topic: ", &offset);
 
-            utfHandle(message, "will message: ", &offset);
+            utfHandle(variableAndPayload, "will message: ", &offset);
         }
         else
         {
             // no will
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
         }
 
         //no password or username
-        memcpy(message + offset, &i, 1);
+        memcpy(variableAndPayload + offset, &i, 1);
         offset += 1;
-        memcpy(message + offset, &i, 1);
+        memcpy(variableAndPayload + offset, &i, 1);
         offset += 1;
-        memcpy(message + offset, &i, 1);
+        memcpy(variableAndPayload + offset, &i, 1);
         offset += 1;
-        memcpy(message + offset, &i, 1);
+        memcpy(variableAndPayload + offset, &i, 1);
         offset += 1;
     }
     else
     {
-        message[10] |= USERNAME;
-        message[10] |= PASSWORD;
+        variableAndPayload[flags] |= USERNAME;
+        variableAndPayload[flags] |= PASSWORD;
         
         // no id
         uint8_t i = 0;
-        memcpy(message + offset, &i, 1);
+        memcpy(variableAndPayload + offset, &i, 1);
         offset += 1;
-        memcpy(message + offset, &i, 1);
+        memcpy(variableAndPayload + offset, &i, 1);
         offset += 1;
 
         if(answerWill)
         {
-            utfHandle(message, "will topic: ", &offset);
+            utfHandle(variableAndPayload, "will topic: ", &offset);
 
-            utfHandle(message, "will message: ", &offset);
+            utfHandle(variableAndPayload, "will message: ", &offset);
         }
         else
         {
             // no will
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
-            memcpy(message + offset, &i, 1);
+            memcpy(variableAndPayload + offset, &i, 1);
             offset += 1;
         }
 
-        utfHandle(message, "user name: ", &offset);
+        utfHandle(variableAndPayload, "user name: ", &offset);
 
-        utfHandle(message, "password: ", &offset);
+        utfHandle(variableAndPayload, "password: ", &offset);
     }
+
+    int remainingLengthSize = encodeRemainingLength(offset, message);
+
+    memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
     
     for (size_t i = 0; i < offset; i++)
     {
@@ -380,6 +396,38 @@ int createConnect(char *message)
     }
     printf("\n\n");
     return answerQoS;
+}
+
+int handleconnack(char *connack)
+{
+    switch (connack[3])
+    {
+    case: ACCEPTED
+        print("Connection accepted\n");
+        return 1;
+    case: REFUSED_VERSION:
+        print("Connection refused: Unacceptable protocol version\n");
+        return 0;
+    case: REFUSED_IDENTIFIER:
+        print("Connection refused: Unacceptable Identifier  \n");
+        return 0;
+    case: REFUSED_SERVER_DOWN:
+        print("Connection refused: Server going down\n");
+        return 0;
+    case: REFUSED_WRONG_USER_PASS:
+        print("Connection refused: Unacceptable username or password\n");
+        return 0;
+    case: REFUSED_NOT_AUTHORIZED:
+        print("Connection refused: The Client's provided Client_Identifier is not allowed by the server.\n");
+        return 0;   
+    default:
+        perror("Connection refused: Unknown error\n");
+        break;
+    }
+    for (size_t i = 0; i < 4; i++) // 4 bytes. 4 bytes is the size of the connack message
+    {
+        printf("%02X ", (unsigned char)connack[i]); // Cast char to unsigned char for correct output
+    }
 }
 
 //================================================================================================================
@@ -392,22 +440,32 @@ int createConnect(char *message)
 
 int createPublish(char *message)
 {
-    int offset = 0;
+    char variableAndPayload[500];
+
     int qos = handleFixHeader(message, PUBLISH);
 
-    offset += 3;
+    int offset = 0;
 
     // variable header
-    utfHandle(message, "Topic: ", &offset);
+    utfHandle(variableAndPayload, "Topic: ", &offset);
 
-    srand(time(NULL));
-    uint16_t identifier = htons(rand()%65500);
+    // variable header
+    uint16_t id;
+    printf("Select a packet identifier: ");
+    scanf("%d", &id);
+    getchar();
 
-    memcpy(message + offset, &identifier, 2);
+    uint16_t identifier = htons(id);
+    memcpy(variableAndPayload + offset, &identifier, 2);
+
     offset += 2;
 
     // payload
-    utfHandle(message, "Data: ", &offset);
+    utfHandle(variableAndPayload, "Data: ", &offset);
+
+    int remainingLengthSize = encodeRemainingLength(offset, message);
+
+    memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
     
     for (size_t i = 0; i < offset; i++)
     {
@@ -415,6 +473,26 @@ int createPublish(char *message)
     }
     return qos;
 }
+
+int handlepuback(char *connack,uint16_t identifier)
+{
+    uint16_t id;
+    memcpy(connack + 2, &id, 2);
+    id = ntohs(id);
+
+    if (id == identifier)
+    {
+        printf("PUBACK received\n");
+        return 1;
+    }
+    else
+    {
+        printf("PUBACK not received\n");
+        return 0;
+    }
+
+}
+
 //================================================================================================================
 
 /*******************************************/
@@ -423,58 +501,100 @@ int createPublish(char *message)
 /*                                         */
 /*******************************************/
 
-int createSubscribe(char *message)
+Result createSubscribe(char *message)
 {
-    int offset = 0;
+    char variableAndPayload[500];
+
+    Result result;
     int resQos = handleFixHeader(message, SUBSCRIBE);
 
-    offset += 3;
+    int offset = 0;
 
     // variable header
-    srand(time(NULL));
-    uint16_t identifier = htons(rand()%65500);
+    uint16_t id;
+    printf("Select a packet identifier: ");
+    scanf("%d", &id);
+    getchar();
 
-    memcpy(message + offset, &identifier, 2);
+    uint16_t identifier = htons(id);
+    memcpy(variableAndPayload + offset, &identifier, 2);
     offset += 2;
 
     // payload
-    utfHandle(message, "Topic to subscribe: ", &offset);
+    utfHandle(variableAndPayload, "Topic to subscribe: ", &offset);
 
     int qos;
     printf("Put the level of QoS (0 | 1): ");
     scanf("%d", &qos);
     getchar();
 
-    memcpy(message + offset, &qos, 1);
+    memcpy(variableAndPayload + offset, &qos, 1);
     offset += 1;
 
     int answ;
     printf("Do you want to subscribe to more topics (0 no | 1 yes): ");
     scanf("%d", &answ);
     getchar();
+    int counter;
 
     while (answ)
     {
-        utfHandle(message, "Topic to subscribe: ", &offset);
+        utfHandle(variableAndPayload, "Topic to subscribe: ", &offset);
 
         printf("Put the level of QoS (0 | 1): ");
         scanf("%d", &qos);
         getchar();
 
-        memcpy(message + offset, &qos, 1);
+        memcpy(variableAndPayload + offset, &qos, 1);
         offset += 1;
 
         printf("Do you want to subscribe to more topics (0 no | 1 yes): ");
         scanf("%d", &answ);
         getchar();
+        counter += 1;
     }
+
+    int remainingLengthSize = encodeRemainingLength(offset, message);
     
+    memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
 
     for (size_t i = 0; i < offset; i++)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
-    return resQos;
+
+    result.id = id;
+    result.resQos = resQos;
+    result.counter = counter;
+
+    return result;
+}
+
+int handlesuback(char *suback, int counter, uint16_t id)
+{
+    uint16_t identifier;
+    memcpy(suback + 2, &identifier, 2);
+    identifier = ntohs(identifier);
+
+    if (id == identifier)
+    {
+        for (size_t i = 0; i < counter; i++)
+        {
+            if ((suback[4 + i] & 0b10000000) == 0)
+            {
+                printf("subscription accepted");
+            }
+            else
+            {
+                printf("subscription not accepted");
+            }
+        }
+    }
+    else
+    {
+        printf("SUBACK not received\n");
+    }
+    
 }
 
 //================================================================================================================
