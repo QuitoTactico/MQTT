@@ -529,8 +529,8 @@ Result createSubscribe(char *message)
         counter += 1;
     }
 
-    uint16_t identifier = 0;
-    memcpy(variableAndPayload + offset, &identifier, 2);
+    uint16_t top = 0;
+    memcpy(variableAndPayload + offset, &top, 2);
 
     offset += 2;
 
