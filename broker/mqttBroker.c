@@ -233,22 +233,22 @@ uint32_t decodeRemainingLength(const char* buffer) {
 }
 
 // macro for the utf handling of inputs
-#define UTF_HANDLE(name, field, sizeField, args, offset)   \
-    memcpy(&(name.sizeField), args + offset, 2);           \
-    name.sizeField = ntohs(name.sizeField);                \
-                                                           \
-    offset += 2;                                           \
-                                                           \
-    if (name.sizeField != 0)                               \
-    {                                                      \
-        do                                                 \
-        {                                                  \
-            name.field = (char *)malloc(name.sizeField);   \
-        } while (name.field == NULL);                      \
-                                                           \
-        memcpy(name.field, args + offset, name.sizeField); \
-                                                           \
-        offset += name.sizeField;                          \
+#define UTF_HANDLE(name, field, sizeField, args, offset)        \
+    memcpy(&(name.sizeField), args + offset, 2);                \
+    name.sizeField = ntohs(name.sizeField);                     \
+                                                                \
+    offset += 2;                                                \
+                                                                \
+    if (name.sizeField != 0)                                    \
+    {                                                           \
+        do                                                      \
+        {                                                       \
+            name.field = (char *)malloc(name.sizeField + 1);    \
+        } while (name.field == NULL);                           \
+                                                                \
+        memcpy(name.field, args + offset, name.sizeField);      \
+                                                                \
+        offset += name.sizeField;                               \
     }
 
 //================================================================================================================
