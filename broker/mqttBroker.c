@@ -539,10 +539,10 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
     offset += 2;
 
-    subscribePayload payload[20];
+    subscribePayload payload[200];
     int amount_sub = 0;
 
-    while((args[offset] != 0 || args[offset + 1] != 0) && amount_sub < 20)
+    while(((args[offset] != 0) || (args[offset + 1] != 0)) && amount_sub < 200)
     {
         UTF_HANDLE(payload[amount_sub], topic, size, args, offset);
 
