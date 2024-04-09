@@ -553,7 +553,7 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
     printf("subscribe id: %d\n", variable.identifier);
 
-    for (int i = 0; i < amount; i++)
+    for (int i = 0; i < amount_sub; i++)
     {
         printf("subscribe topic size: %d\n", payload[i].size);
         printf("subscribe topic: %s\n", payload[i].topic);
