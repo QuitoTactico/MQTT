@@ -318,75 +318,44 @@ int createConnect(char *message)
     if (answersession)
     {
         utfHandle(variableAndPayload, "ID: ", &offset);
-
-        uint8_t i = 0;
-
-        if(answerWill)
-        {
-            utfHandle(variableAndPayload, "will topic: ", &offset);
-
-            utfHandle(variableAndPayload, "will message: ", &offset);
-        }
-        else
-        {
-            // no will
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-        }
-
-        //no password or username
-        memcpy(variableAndPayload + offset, &i, 1);
-        offset += 1;
-        memcpy(variableAndPayload + offset, &i, 1);
-        offset += 1;
-        memcpy(variableAndPayload + offset, &i, 1);
-        offset += 1;
-        memcpy(variableAndPayload + offset, &i, 1);
-        offset += 1;
     }
     else
     {
+        uint32_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 4);
+        offset += 4;
+    }
+
+    if(answerWill)
+    {
+        utfHandle(variableAndPayload, "will topic: ", &offset);
+
+        utfHandle(variableAndPayload, "will message: ", &offset);
+    }
+    else
+    {
+        uint64_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 8);
+        offset += 8;
+    }
+
+    if (!answersession)
+    {
         variableAndPayload[flags] |= USERNAME;
         variableAndPayload[flags] |= PASSWORD;
-        
-        // no id
-        uint8_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 1);
-        offset += 1;
-        memcpy(variableAndPayload + offset, &i, 1);
-        offset += 1;
-
-        if(answerWill)
-        {
-            utfHandle(variableAndPayload, "will topic: ", &offset);
-
-            utfHandle(variableAndPayload, "will message: ", &offset);
-        }
-        else
-        {
-            // no will
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-            memcpy(variableAndPayload + offset, &i, 1);
-            offset += 1;
-        }
 
         utfHandle(variableAndPayload, "user name: ", &offset);
 
         utfHandle(variableAndPayload, "password: ", &offset);
     }
+    else
+    {
+        uint64_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 8);
+        offset += 8;
+    }
 
-    int remainingLengthSize = encodeRemainingLength(offset, message);
+    int remainingLengthSize = encodeRemainingLength(offset, message + 1);
 
     memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
     
@@ -464,7 +433,7 @@ Resultpub createPublish(char *message)
     // payload
     utfHandle(variableAndPayload, "Data: ", &offset);
 
-    int remainingLengthSize = encodeRemainingLength(offset, message);
+    int remainingLengthSize = encodeRemainingLength(offset, message + 1);
 
     memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
     
@@ -557,7 +526,7 @@ Result createSubscribe(char *message)
         counter += 1;
     }
 
-    int remainingLengthSize = encodeRemainingLength(offset, message);
+    int remainingLengthSize = encodeRemainingLength(offset, message + 1);
     
     memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
 

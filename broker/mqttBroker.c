@@ -267,7 +267,7 @@ void handleFixedHeader(char *args, int sockfd)
     memcpy(&header.messageType, args + offset, 1);
     offset += 1;
     
-    header.remainingLenght =  decodeRemainingLength(args + 1);
+    header.remainingLenght = decodeRemainingLength(args + 1);
 
     offset += remainingOffset(header.remainingLenght);
 
