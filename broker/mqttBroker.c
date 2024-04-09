@@ -248,6 +248,8 @@ uint32_t decodeRemainingLength(const char* buffer) {
                                                                 \
         memcpy(name.field, args + offset, name.sizeField);      \
                                                                 \
+        name.field[name.sizeField] = '\0';                      \
+                                                                \
         offset += name.sizeField;                               \
     }
 
@@ -565,7 +567,7 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
 void freeSubscribe(subscribePayload *sp, int amount)
 {
-    for (int i = 0; i < amount; i ++)
+    for (int i = 0; i < amount; i++)
     {
         free(sp[amount].topic);
     }
