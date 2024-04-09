@@ -529,6 +529,11 @@ Result createSubscribe(char *message)
         counter += 1;
     }
 
+    uint16_t identifier = 0;
+    memcpy(variableAndPayload + offset, &identifier, 2);
+
+    offset += 2;
+
     int remainingLengthSize = encodeRemainingLength(offset, message + 1);
     
     memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);
