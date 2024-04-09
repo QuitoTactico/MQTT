@@ -334,6 +334,8 @@ void handleConnect(char *args, int offset, int sockfd)
     variable.keepAlive = ntohs(variable.keepAlive);
     offset += 2;
 
+    connectPayload payload = readConnectPayload(args, offset);
+
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
         printf("-clean start-\n");
@@ -358,8 +360,6 @@ void handleConnect(char *args, int offset, int sockfd)
     {
         printf("-has username-\n");
     }
-
-    connectPayload payload = readConnectPayload(args, offset);
 
     if (payload.clientIDSize != 0)
     {
@@ -553,7 +553,7 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
     printf("subscribe id: %d\n", variable.identifier);
 
-    for (int i = amount_sub; i >= 0; i--)
+    for (int i = 0; i < amount; i++)
     {
         printf("subscribe topic size: %d\n", payload[i].size);
         printf("subscribe topic: %s\n", payload[i].topic);
@@ -565,7 +565,7 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
 void freeSubscribe(subscribePayload *sp, int amount)
 {
-    while (amount >= 0)
+    for (int i = 0; i < amount; i ++)
     {
         free(sp[amount].topic);
     }
@@ -587,7 +587,7 @@ void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount)
     id = ntohs(id);
     memcpy(pubackMessage + 2, &id, 2);
 
-    for (int i = 0; i <= amount; i++)
+    for (int i = 0; i < amount; i++)
     {
         memcpy(pubackMessage + offset, &sp->qos, 1);
         offset++;
