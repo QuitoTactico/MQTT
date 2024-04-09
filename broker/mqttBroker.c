@@ -1,4 +1,4 @@
-#include "mqttServer.h"
+#include "mqttBroker.h"
 
 //================================================================================================================
 
@@ -11,7 +11,7 @@
 typedef struct
 {
     uint8_t messageType;
-    uint16_t remainingLenght;
+    uint32_t remainingLenght;
 } fixedHeader;
 
 /*******************************************/
@@ -70,7 +70,7 @@ typedef struct
     // 4
     uint16_t nameLenght;
     // "MQTT"
-    char name[4];
+    char name[4];   
     // 4 for 3.1 | 5 for 5
     uint8_t version;
     // type of connection
@@ -118,10 +118,10 @@ typedef struct
     char *passWord;
 } connectPayload;
 
-void createConnack(char* connackMessage, char *userName, char *passWord);
 void handleConnect(char *args, int offset, int sockfd);
 connectPayload readConnectPayload(char *args, int offset);
 void freeConnectPayload(connectPayload *payload);
+void sendConnack(int sockfd);
 
 //================================================================================================================
 
@@ -166,6 +166,7 @@ typedef struct
 } publishPayload;
 
 void handlePublish(char *args, int offset, int sockfd);
+void sendPuback(int sockfd, uint16_t id);
 
 //================================================================================================================
 
@@ -195,11 +196,44 @@ typedef struct
 
 void handleSubscribe(char *args, int offset, int sockfd);
 void freeSubscribe(subscribePayload *sp, int amount);
+void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount);
 
 //================================================================================================================
 
+uint32_t remainingOffset(uint32_t value)
+{
+    if (value <= 0xFF) {
+        return 1;
+    } else if (value <= 0xFFFF) {
+        return 2;
+    } else if (value <= 0xFFFFFF) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
+uint32_t decodeRemainingLength(const char* buffer) {
+    uint32_t value = 0;
+    uint32_t multiplier = 1;
+    size_t index = 0;
+
+    do {
+        uint8_t encodedByte = buffer[index++];
+        value += (encodedByte & 127) * multiplier;
+
+        multiplier *= 128;
+        if (multiplier > 128*128*128) {
+            fprintf(stderr, "remaining length malformado en el paquete MQTT\n");
+            return 0;
+        }
+    } while ((buffer[index-1] & 128) != 0);
+
+    return value;
+}
+
 // macro for the utf handling of inputs
-#define UTF_HANDLE(name, field, sizeField, args, offset)  \
+#define UTF_HANDLE(name, field, sizeField, args, offset)   \
     memcpy(&(name.sizeField), args + offset, 2);           \
     name.sizeField = ntohs(name.sizeField);                \
                                                            \
@@ -232,9 +266,10 @@ void handleFixedHeader(char *args, int sockfd)
 
     memcpy(&header.messageType, args + offset, 1);
     offset += 1;
-    memcpy(&header.remainingLenght, args + offset, 2);
-    header.remainingLenght = ntohs(header.remainingLenght);
-    offset += 2;
+    
+    header.remainingLenght =  decodeRemainingLength(args + 1);
+
+    offset += remainingOffset(header.remainingLenght);
 
     switch (header.messageType & FIXED)
     {
@@ -281,68 +316,6 @@ void handleFixedHeader(char *args, int sockfd)
 /*                 CONNECT                 */
 /*                                         */
 /*******************************************/
-/*
-void createConnack(char* connackMessage, char *userName, char *passWord)
-{
-    int offset = 0;
-    //FIXED HEADER
-    connackMessage[0] = CONNACK;
-
-    offset += 1;
-
-    uint16_t rem_lengt = htons(2);
-    memcpy(connackMessage + 1, &rem_lengt, 2); // remaining length
-
-    offset += 2;
-    uint8_t i = 0;
-    //VARIABLE HEADER
-    //verifySession
-    //if cleansession == 1:
-    //memcpy(message + offset, &i, 1);
-    //offset += 1;
-    //sino, se queda en 0, no pasa nada
-    memcpy(connackMessage + offset, &i, 1);
-    offset += 1;
-
-    //return code
-    uint8_t returnCode = ACCEPTED;
-    //VALIDATE RETURN CODE TO PUT ANOTHER ONE
-
-    memcpy(connackMessage + offset, &returnCode, 1);
-
-    //print
-    for (size_t i = 0; i < offset; i++)
-    {
-        printf("%02X ", (unsigned char)connackMessage[i]); // Cast char to unsigned char for correct output
-    }
-}*/
-
-void createConnack(char* connackMessage, char *userName, char *passWord)
-{
-    printf("Creating connack\n");
-    // Tipo de mensaje
-    connackMessage[0] = 0x20;
-
-    // Longitud restante
-    connackMessage[1] = 0x02;
-
-    // Bandera de sesión presente
-    // Aquí asumimos que no hay sesión presente
-    connackMessage[2] = 0x00;
-
-    // Código de retorno
-    // Aquí asumimos que la conexión fue aceptada
-    // Deberías cambiar esto si hay un error
-    connackMessage[3] = 0x00;
-    printf("Finishing connack\n");
-
-    /*
-    for (size_t i = 0; i < 4; i++)
-    {
-        printf("%02X ", (unsigned char)connackMessage[i]); // Cast char to unsigned char for correct output
-    }
-    */
-}
 
 void handleConnect(char *args, int offset, int sockfd)
 {
@@ -360,6 +333,8 @@ void handleConnect(char *args, int offset, int sockfd)
     memcpy(&variable.keepAlive, args + offset, 2);
     variable.keepAlive = ntohs(variable.keepAlive);
     offset += 2;
+
+    connectPayload payload = readConnectPayload(args, offset);
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
@@ -385,8 +360,6 @@ void handleConnect(char *args, int offset, int sockfd)
     {
         printf("-has username-\n");
     }
-
-    connectPayload payload = readConnectPayload(args, offset);
 
     if (payload.clientIDSize != 0)
     {
@@ -414,18 +387,7 @@ void handleConnect(char *args, int offset, int sockfd)
         printf("password: %s\n", payload.passWord);
     }
 
-    // initialize the connack message. It will be 4 bytes long. Initialized with zeros to avoid garbage values
-    char connackMessage[4] = {0};   // for other ack messages, you will need to know the size of your message
-                                    // and strlen only works if there's a Null terminator at some point.
-                                    // so it's better to NOT initialize the message with zeros in other contexts
-    // create the connack message
-    createConnack(connackMessage, payload.userName, payload.passWord);
-    // send the connack message
-    int result = send(sockfd, connackMessage, 4, 0);
-    // check if the message was sent successfully
-    if (result == -1) {
-        perror("Sending connack failed\n");
-    }
+    sendConnack(sockfd);
 
     freeConnectPayload(&payload);
 }
@@ -471,6 +433,28 @@ void freeConnectPayload(connectPayload *payload)
         free(payload->passWord);
 }
 
+void sendConnack(int sockfd)
+{
+    char connackMessage[4];
+
+    connackMessage[0] = CONNACK;
+
+    // remaining lenght
+    connackMessage[1] = 0x02;
+
+    // sesion present
+    connackMessage[2] = 0x00;
+
+    // state
+    connackMessage[3] = ACCEPTED;
+
+    int result = send(sockfd, connackMessage, 4, 0);
+    
+    if (result == -1) {
+        perror("Sending connack failed\n");
+    }
+}
+
 //================================================================================================================
 
 /*******************************************/
@@ -481,6 +465,8 @@ void freeConnectPayload(connectPayload *payload)
 
 void handlePublish(char *args, int offset, int sockfd)
 {
+    // publish variable header
+
     publishVariableHeader variable;
 
     UTF_HANDLE(variable, topic, size, args, offset);
@@ -490,9 +476,13 @@ void handlePublish(char *args, int offset, int sockfd)
 
     offset += 2;
 
+    // publish payload
+
     publishPayload payload;
 
     UTF_HANDLE(payload, data, size, args, offset);
+
+    // printing information
 
     if(variable.size !=0)
     {
@@ -505,8 +495,29 @@ void handlePublish(char *args, int offset, int sockfd)
         printf("publish data: %s\n", payload.data);
     }
 
+    sendPuback(sockfd, variable.identifier);
+
     free(variable.topic);
     free(payload.data);
+}
+
+void sendPuback(int sockfd, uint16_t id)
+{
+    char pubackMessage[4];
+
+    pubackMessage[0] = PUBACK;
+
+    // remaining lenght
+    pubackMessage[1] = 0x02;
+
+    id = htons(id);
+    memcpy(pubackMessage + 2, &id, 2);
+
+    int result = send(sockfd, pubackMessage, 4, 0);
+    
+    if (result == -1) {
+        perror("Sending connack failed\n");
+    }
 }
 
 //================================================================================================================
@@ -529,7 +540,7 @@ void handleSubscribe(char *args, int offset, int sockfd)
     subscribePayload payload[20];
     int amount_sub = 0;
 
-    while((args + offset) != 0 || (args + offset + 1) != 0 && amount_sub < 20)
+    while((args[offset] != 0 || args[offset + 1] != 0) && amount_sub < 20)
     {
         UTF_HANDLE(payload[amount_sub], topic, size, args, offset);
 
@@ -542,10 +553,11 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
     printf("subscribe id: %d\n", variable.identifier);
 
-    for (int i = amount_sub; i >= 0; i--)
+    for (int i = 0; i < amount; i++)
     {
         printf("subscribe topic size: %d\n", payload[i].size);
         printf("subscribe topic: %s\n", payload[i].topic);
+        printf("subscribe topic qos: %d\n", payload[i].qos);
     }
 
     freeSubscribe(payload, amount_sub);
@@ -553,11 +565,39 @@ void handleSubscribe(char *args, int offset, int sockfd)
 
 void freeSubscribe(subscribePayload *sp, int amount)
 {
-    while (amount >= 0)
+    for (int i = 0; i < amount; i ++)
     {
         free(sp[amount].topic);
     }
     
+}
+
+void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount)
+{
+    int offset = 2;
+
+    char pubackMessage[2 + amount];
+
+    pubackMessage[0] = SUBACK;
+
+    // remaining lenght
+    pubackMessage[1] = amount;
+
+    // identifier
+    id = ntohs(id);
+    memcpy(pubackMessage + 2, &id, 2);
+
+    for (int i = 0; i < amount; i++)
+    {
+        memcpy(pubackMessage + offset, &sp->qos, 1);
+        offset++;
+    }
+
+    int result = send(sockfd, pubackMessage, amount + 3, 0);
+    
+    if (result == -1) {
+        perror("Sending connack failed\n");
+    }   
 }
 
 //================================================================================================================
