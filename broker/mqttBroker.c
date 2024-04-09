@@ -570,7 +570,8 @@ void freeSubscribe(subscribePayload *sp, int amount)
     for (int i = 0; i < amount; i++)
     {
         printf("amount of frees %d\n\n", i);
-        free(sp[amount].topic);
+        if (sp[amount].topic != NULL)
+            free(sp[amount].topic);
     }
     
 }
