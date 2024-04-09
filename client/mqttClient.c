@@ -321,9 +321,9 @@ int createConnect(char *message)
     }
     else
     {
-        uint32_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 4);
-        offset += 4;
+        uint16_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 2);
+        offset += 2;
     }
 
     if(answerWill)
@@ -334,9 +334,9 @@ int createConnect(char *message)
     }
     else
     {
-        uint64_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 8);
-        offset += 8;
+        uint32_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 4);
+        offset += 4;
     }
 
     if (!answersession)
@@ -350,9 +350,9 @@ int createConnect(char *message)
     }
     else
     {
-        uint64_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 8);
-        offset += 8;
+        uint32_t i = 0;
+        memcpy(variableAndPayload + offset, &i, 4);
+        offset += 4;
     }
 
     int remainingLengthSize = encodeRemainingLength(offset, message + 1);
