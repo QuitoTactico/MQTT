@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     printf("Connecting to the broker\n\n");
     int sockfd;
     int connectAccepted = 0;
-    while (connectAccepted)
+    while (connectAccepted != 1)
     {
         int connectQos = createConnect(message);
 
