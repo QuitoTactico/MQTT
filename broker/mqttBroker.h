@@ -44,3 +44,32 @@ int close_server();
 /*                                         */
 /*******************************************/
 
+// General
+
+int DBsaveStringsToFile(const char* filename, const char* string1, const char* string2);
+
+int DBverifySession(const char* username, const char* password);
+
+int DBcheckExistence(const char* filename, const char* string1);
+
+int DBupdateOrCreate(const char* filename, const char* string1, const char* string2);
+
+// Subscriptions
+
+int DBgetSubscribes(char* username, char*** topics);
+
+int DBisUserInList(char* username, char** users, int usersCount);
+
+int DBgetSubscriptors(char* topic, char*** users);
+
+// Sockets
+
+int DBgetSocketByUsername(const char* username);
+
+// Log
+
+void DBsaveLog(char* dir, char* ip, char* request, char* args);
+
+// Auxiliar IP function
+
+void getIP(int sockfd, char* ip);
