@@ -374,7 +374,7 @@ int createConnect(char *message)
     return answerQoS;
 }
 
-int handleconnack(char *connack)
+int handleConnack(char *connack)
 {
     switch (connack[3])
     {
@@ -414,9 +414,8 @@ int handleconnack(char *connack)
 /*                                         */
 /*******************************************/
 
-Resultpub createPublish(char *message)
+void createPublish(char *message)
 {
-    Resultpub result;
     char variableAndPayload[500];
 
     int qos = handleFixHeader(message, PUBLISH);
@@ -447,16 +446,17 @@ Resultpub createPublish(char *message)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
-    result.id = id;
-    result.resQos = qos;
-    return result;
 }
 
-int handlepuback(char *connack,uint16_t identifier)
+int handlePuback(char *connack)
 {
+    uint16_t identifier;
+
     uint16_t id;
     memcpy(connack + 2, &id, 2);
     id = ntohs(id);
+
+
 
     if (id == identifier)
     {
@@ -479,11 +479,9 @@ int handlepuback(char *connack,uint16_t identifier)
 /*                                         */
 /*******************************************/
 
-Result createSubscribe(char *message)
+void createSubscribe(char *message)
 {
     char variableAndPayload[500];
-
-    Result result;
     int resQos = handleFixHeader(message, SUBSCRIBE);
 
     int offset = 0;
@@ -545,19 +543,18 @@ Result createSubscribe(char *message)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
-
-    result.id = id;
-    result.resQos = resQos;
-    result.counter = counter;
-
-    return result;
 }
 
-int handlesuback(char *suback, int counter, uint16_t id)
+int handleSuback(char *suback)
 {
+    int counter;
+    uint16_t id;
+
     uint16_t identifier;
     memcpy(suback + 2, &identifier, 2);
     identifier = ntohs(identifier);
+
+    
 
     if (id == identifier)
     {
@@ -640,4 +637,28 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     }
 
     printf("ip conection from %s with port %s\n", hostName, serviceName);
+}
+
+int handleRecv(void * sockfd){
+
+    int brokerSockfd = *(int*)sockfd;
+
+    char buf[500];
+
+    while(1)
+    {
+        recv(brokerSockfd, buf, 500, 0);
+
+        switch ((buf[0] & 0b11110000))
+        {
+        case PUBACK:
+            handlePuback(buf);
+            break;
+        case SUBACK:
+            handleSuback(buf);
+            break;
+        default:
+            break;
+        }
+    }
 }

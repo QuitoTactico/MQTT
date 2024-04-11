@@ -3,37 +3,36 @@
 
 int main(int argc, char *argv[])
 {
-    char answer[20];
     char message[500];
-    char anssession[50];
-    char broker_ip[30];
-    char connack[4];
-    char puback[4];
-    char suback[4];
+    int brokerSockfd;
 
+    char broker_ip[30];
     printf("Enter the broker IP: ");
     scanf("%s", broker_ip);
 
-    printf("Connecting to the broker\n\n");
-    int sockfd;
     int connectAccepted = 0;
     while (connectAccepted != 1)
     {
+        char connack[4];
+
         int connectQos = createConnect(message);
 
-        sockfd = connectSocket(broker_ip, BROKER_PORT);
+        brokerSockfd = connectSocket(broker_ip, BROKER_PORT);
 
-        send(sockfd, &message, 500, 0);
+        send(brokerSockfd, &message, 500, 0);
 
         // receive connack
-        recv(sockfd, connack, 4, 0);
+        recv(brokerSockfd, connack, 4, 0);
 
-        connectAccepted = handleconnack(connack);
-
-        if(connectAccepted == 0){
-            close(sockfd);
-        }
+        printf("Connecting to the broker\n\n");
+        connectAccepted = handleConnack(connack);
     }
+
+    thrd_t recvThread;
+
+    thrd_create(&recvThread, handleRecv, &brokerSockfd);
+
+    char answer[20];
 
     for (;;)
     {
@@ -45,36 +44,28 @@ int main(int argc, char *argv[])
 
         if (strcmp(answer, "publish") == 0)
         {
-            Resultpub publishResponse = createPublish(message);
-            send(sockfd, &message, 500, 0);
+            createPublish(message);
+            send(brokerSockfd, &message, 500, 0);
             printf("publish message sent\n");
-            if (publishResponse.resQos)
-            {
-                recv(sockfd, puback, 4, 0);
-                handlepuback(puback, publishResponse.id);
-            }
         }
         else if (strcmp(answer, "subscribe") == 0)
         {
-            Result subscribeqos = createSubscribe(message);
-            send(sockfd, &message, 500, 0);
+            createSubscribe(message);
+            send(brokerSockfd, &message, 500, 0);
             printf("subscribe message sent\n");
-            if (subscribeqos.resQos)
-            {
-                recv(sockfd, &message, 500, 0);
-                handlesuback(suback, subscribeqos.counter, subscribeqos.id);
-            }
         }
         else if (strcmp(answer, "exit") == 0)
         {
-            send(sockfd, "q\0", 2, 0);
-            send(sockfd, &message, 500, 0); // si se comenta, el broker igual señala un "####### client gone #######"
+            send(brokerSockfd, "q\0", 2, 0);
             printf("exiting the server\n");
             break;
         }
     }
 
-    // close(sockfd);
+    int res;
+    thrd_join(recvThread, &res);
+
+    // close(brokerSockfd);
 
     return 0;
 }

@@ -17,8 +17,9 @@
 /*                 CONNECT                 */
 /*                                         */
 /*******************************************/
-int handleconnack(char *connack);
+
 int createConnect(char *message);
+int handleConnack(char *connack);
 
 //================================================================================================================
 
@@ -27,12 +28,9 @@ int createConnect(char *message);
 /*                PUBLISH                  */
 /*                                         */
 /*******************************************/
-typedef struct {
-    uint16_t id;
-    int resQos;
-} Resultpub;
-int handlepuback(char *connack,uint16_t identifier);
-Resultpub createPublish(char *message);
+
+void createPublish(char *message);
+int handlePuback(char *connack);
 
 //================================================================================================================
 
@@ -41,13 +39,9 @@ Resultpub createPublish(char *message);
 /*               SUBSCRIBE                 */
 /*                                         */
 /*******************************************/
-typedef struct {
-    uint16_t id;
-    int resQos;
-    int counter;
-} Result;
-Result createSubscribe(char *message);
-int handlesuback(char *suback, int counter, uint16_t id);
+
+void createSubscribe(char *message);
+int handleSuback(char *suback);
 
 //================================================================================================================
 
@@ -65,11 +59,4 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_add
 
 int handleRequest(void *args);
 
-
-// connack return codes
-#define ACCEPTED 0b00000000
-#define REFUSED_VERSION 0b00000001
-#define REFUSED_IDENTIFIER 0b00000010
-#define REFUSED_SERVER_DOWN 0b00000011
-#define REFUSED_WRONG_USER_PASS 0b00000100
-#define REFUSED_NOT_AUTHORIZED 0b00000101
+int handleRecv(void * sockfd);
