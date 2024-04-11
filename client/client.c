@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
         scanf("%s", answer);
         printf("You selected: %s\n", answer);
         memset(message, 0, 500);
-
+        
         if (strcmp(answer, "publish") == 0)
         {
             createPublish(message);

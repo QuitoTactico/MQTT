@@ -116,10 +116,12 @@ typedef struct
 
 typedef struct
 {
-    uint16_t topicSize;
+    uint16_t size;
     char *topic;
     uint16_t identifier;
 } publishVariableHeader;
+
+void handlePublish(char *args);
 
 /*******************************************/
 /*                                         */
@@ -129,7 +131,7 @@ typedef struct
 
 typedef struct
 {
-    uint16_t payloadSize;
+    uint16_t size;
     char *data;
 } publishPayload;
 
@@ -160,6 +162,8 @@ typedef struct
 } subackbeVariableHeader;
 
 //================================================================================================================
+int counter;
+
 
 void utfHandle(char *message, char *type, int *offset)
 {
@@ -448,27 +452,13 @@ void createPublish(char *message)
     }
 }
 
-int handlePuback(char *connack)
+int handlePuback(char *puback)
 {
-    uint16_t identifier;
-
     uint16_t id;
-    memcpy(connack + 2, &id, 2);
+    memcpy(puback + 2, &id, 2);
     id = ntohs(id);
 
-
-
-    if (id == identifier)
-    {
-        printf("PUBACK received\n");
-        return 1;
-    }
-    else
-    {
-        printf("PUBACK not received\n");
-        return 0;
-    }
-
+    printf("PUBACK received with id: %d\n", id);
 }
 
 //================================================================================================================
@@ -511,7 +501,7 @@ void createSubscribe(char *message)
     printf("Do you want to subscribe to more topics (0 no | 1 yes): ");
     scanf("%d", &answ);
     getchar();
-    int counter;
+    int countertemp;
 
     while (answ)
     {
@@ -527,7 +517,7 @@ void createSubscribe(char *message)
         printf("Do you want to subscribe to more topics (0 no | 1 yes): ");
         scanf("%d", &answ);
         getchar();
-        counter += 1;
+        countertemp += 1;
     }
 
     uint16_t finalSub = 0;
@@ -543,38 +533,27 @@ void createSubscribe(char *message)
     {
         printf("%02X ", (unsigned char)message[i]); // Cast char to unsigned char for correct output
     }
+    counter = countertemp;
 }
 
 int handleSuback(char *suback)
 {
-    int counter;
-    uint16_t id;
-
     uint16_t identifier;
     memcpy(suback + 2, &identifier, 2);
     identifier = ntohs(identifier);
 
-    
-
-    if (id == identifier)
+    //WHILE
+    for (size_t i = 0; i < counter; i++)
     {
-        for (size_t i = 0; i < counter; i++)
+        if ((suback[4 + i] & 0b10000000) == 0)
         {
-            if ((suback[4 + i] & 0b10000000) == 0)
-            {
-                printf("subscription accepted");
-            }
-            else
-            {
-                printf("subscription not accepted");
-            }
+            printf("subscription accepted");
         }
-    }
-    else
-    {
-        printf("SUBACK not received\n");
-    }
-    
+        else
+        {
+            printf("subscription not accepted");
+        }
+    }    
 }
 
 //================================================================================================================
@@ -657,8 +636,107 @@ int handleRecv(void * sockfd){
         case SUBACK:
             handleSuback(buf);
             break;
+        case PUBLISH:
+            handlePublish(buf);
+            break;
         default:
             break;
         }
     }
+}
+
+uint32_t remainingOffset(uint32_t value)
+{
+    if (value <= 0xFF) {
+        return 1;
+    } else if (value <= 0xFFFF) {
+        return 2;
+    } else if (value <= 0xFFFFFF) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
+uint32_t decodeRemainingLength(const char* buffer) {
+    uint32_t value = 0;
+    uint32_t multiplier = 1;
+    size_t index = 0;
+
+    do {
+        uint8_t encodedByte = buffer[index++];
+        value += (encodedByte & 127) * multiplier;
+
+        multiplier *= 128;
+        if (multiplier > 128*128*128) {
+            fprintf(stderr, "remaining length malformado en el paquete MQTT\n");
+            return 0;
+        }
+    } while ((buffer[index-1] & 128) != 0);
+
+    return value;
+}
+
+// macro for the utf handling of inputs
+#define UTF_HANDLE(name, field, sizeField, args, offset)        \
+    memcpy(&(name.sizeField), args + offset, 2);                \
+    name.sizeField = ntohs(name.sizeField);                     \
+                                                                \
+    offset += 2;                                                \
+                                                                \
+    if (name.sizeField != 0)                                    \
+    {                                                           \
+        do                                                      \
+        {                                                       \
+            name.field = (char *)malloc(name.sizeField + 1);    \
+        } while (name.field == NULL);                           \
+                                                                \
+        memcpy(name.field, args + offset, name.sizeField);      \
+                                                                \
+        name.field[name.sizeField] = '\0';                      \
+                                                                \
+        offset += name.sizeField;                               \
+    }
+
+void handlePublish(char *args)
+{
+    int offset = 1;
+
+    fixedHeader header;
+    header.remainingLenght = decodeRemainingLength(args + 1);
+
+    offset += remainingOffset(header.remainingLenght);
+
+    // publish variable header
+
+    publishVariableHeader variable;
+
+    UTF_HANDLE(variable, topic, size, args, offset);
+
+    memcpy(&variable.identifier, args + offset, 2);
+    variable.identifier = ntohs(variable.identifier);
+
+    offset += 2;
+
+    // publish payload
+
+    publishPayload payload;
+
+    UTF_HANDLE(payload, data, size, args, offset);
+
+    // printing information
+
+    if(variable.size !=0)
+    {
+        printf("publish topic size: %d\n", variable.size);
+        printf("publish topic: %s\n", variable.topic);
+    }
+    if(payload.size !=0)
+    {
+        printf("publish data size: %d\n", payload.size);
+        printf("publish data: %s\n", payload.data);
+    }
+
+    free(variable.topic);
+    free(payload.data);
 }
