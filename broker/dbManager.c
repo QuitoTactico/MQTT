@@ -1,51 +1,5 @@
 #include "mqttBroker.h"
 
-typedef struct DatabaseNode {
-    char string1[100];
-    char string2[100];
-    struct DatabaseNode* next;
-} DatabaseNode;
-
-
-DatabaseNode* readStringsFromFile(const char* filename) {
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("fopen");
-        return NULL;
-    }
-
-    DatabaseNode* head = NULL;
-    DatabaseNode* tail = NULL;
-
-    char line[200];
-    while (fgets(line, sizeof(line), file) != NULL) {
-        DatabaseNode* newNode = malloc(sizeof(DatabaseNode));
-        if (newNode == NULL) {
-            perror("malloc");
-            break;
-        }
-
-        char* token = strtok(line, "|");
-        strncpy(newNode->string1, token, sizeof(newNode->string1) - 1);
-        token = strtok(NULL, "\n");
-        strncpy(newNode->string2, token, sizeof(newNode->string2) - 1);
-
-        newNode->next = NULL;
-
-        if (head == NULL) {
-            head = newNode;
-            tail = newNode;
-        } else {
-            tail->next = newNode;
-            tail = newNode;
-        }
-    }
-
-    fclose(file);
-
-    return head;
-}
-
 //1 si se guardó correctamente, 0 si no se pudo abrir el archivo
 int saveStringsToFile(const char* filename, const char* string1, const char* string2) {
     FILE* file = fopen(filename, "a");
@@ -188,7 +142,7 @@ void getSubscribes(char* username, char*** topics, int* topicsCount) {
     fclose(file);
 }
 
-// not really used. This was caused by a misunderstanding.
+// DEPRECATED. not really used. This was caused by a misunderstanding.
 void getSubscriptors(char* topic, char*** users, int* usersCount) {
     FILE* file = fopen("dbSubscribes.csv", "r");
     char line[256];
