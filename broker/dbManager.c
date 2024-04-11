@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "mqttBroker.h"
 
 typedef struct DatabaseNode {
     char string1[100];
@@ -63,7 +60,7 @@ int saveStringsToFile(const char* filename, const char* string1, const char* str
     return 1;
 }
 
-// retorna 1 si la sesión es válida, 0 si no existe el archivo o no se pudo abrir, -1 si el username y la contaseña no coinciden
+// retorna 1 si la sesión es válida, 0 si no existe el archivo o no se pudo abrir, -1 si el username y la contraseña no coinciden
 int verifySession(const char* username, const char* password) {
     // Abre el archivo CSV
     const char* filename = "dbSessions.csv";
@@ -134,7 +131,7 @@ int updateOrCreate(const char* filename, const char* string1, const char* string
     }
 
     //creamos un archivo temporal para guardar las líneas actualizadas
-    FILE* temp = fopen("dbSessionsTemp.csv", "w");
+    FILE* temp = fopen("temp.csv", "w");
     if (temp == NULL) {
         perror("no se pudo crear el archivo temporal");
         fclose(file);
@@ -168,7 +165,7 @@ int updateOrCreate(const char* filename, const char* string1, const char* string
     //cierra los archivos y renombra el archivo temporal
     fclose(file);
     fclose(temp);
-    rename("dbSessionsTemp.csv", filename);
+    rename("temp.csv", filename);
 
     return userExists; //retornará 1 si ya existía y -1 si no
 }
@@ -253,124 +250,241 @@ void getNotified(char* topic, char*** users, int* usersCount) {
     fclose(file);
 }
 
+void getIP(int sockfd, char* ip) {
+    struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    int res = getpeername(sockfd, (struct sockaddr *)&addr, &addr_size);
+
+    if (res != 0) {
+        printf("Error obteniendo la dirección IP\n");
+        return;
+    }
+
+    inet_ntop(AF_INET, &(addr.sin_addr), ip, INET_ADDRSTRLEN);
+}
+
+void saveLog(char* dir, char* ip, char* request, char* args) {
+    FILE* file = fopen(dir, "a");
+    if (file == NULL) {
+        printf("No se pudo abrir el archivo log\n");
+        return;
+    }
+
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    fprintf(file, "%d-%02d-%02d %02d:%02d:%02d %s %s ",
+        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+        tm.tm_hour, tm.tm_min, tm.tm_sec,
+        ip, request);
+
+    for (int i = 0; i < strlen(args); i++) {
+        fprintf(file, "%02X", (unsigned char)args[i]);
+    }
+
+    fprintf(file, "\n");
+    fclose(file);
+}
+
+int getSocketByUsername(const char* username) {
+    FILE* file = fopen("dbSockets.csv", "r");
+    if (file == NULL) {
+        printf("No se pudo abrir el archivo dbSockets.csv\n");
+        return -1;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = 0; // Elimina el salto de línea al final
+
+        char* token;
+        token = strtok(line, "|");
+        char* fileUsername = strdup(token);
+        token = strtok(NULL, "|");
+        if (strcmp(fileUsername, username) == 0) {
+            free(fileUsername);
+            fclose(file);
+            return atoi(token); // Convierte la cadena a int y la retorna
+        } else {
+            free(fileUsername);
+        }
+    }
+    fclose(file);
+    return -1; // Retorna -1 si no se encontró el nombre de usuario
+}
+
 // pura demostración
 int main() {
+    int log;
+    printf("TEST\n0: Database\n1: Log\n-> ");
+    scanf("%d", &log);
+    getchar();
 
-    for(;;){
-
+    if(log==1){
+        //saveLog("log.txt", 19216801, "GET", "hola");
         char filename[100];
-        char string1[100];
-        char string2[100];
+        char args[100];
+        char ip[16];
+        char request[100];
 
         printf("Introduce el nombre del archivo: ");
         fgets(filename, sizeof(filename), stdin);
-        filename[strcspn(filename, "\n")] = 0;  // Elimina el salto de línea al final
+        filename[strcspn(filename, "\n")] = 0;  // Eliminar el salto de línea al final
 
-        printf("Introduce el primer string: ");
-        fgets(string1, sizeof(string1), stdin);
-        string1[strcspn(string1, "\n")] = 0;  // Elimina el salto de línea al final
+        printf("Introduce la dirección IP: ");
+        scanf("%s", &ip);
 
-        printf("Introduce el segundo string: ");
-        fgets(string2, sizeof(string2), stdin);
-        string2[strcspn(string2, "\n")] = 0;  // Elimina el salto de línea al final
+        printf("Introduce el tipo de request: ");
+        scanf("%s", &request);
 
-        printf("1. Guardar strings en el archivo\n");
-        printf("2. Verificar sesión\n");
-        printf("3. Verificar existencia\n");
-        printf("4. Actualizar o crear registro\n");
-        printf("5. Indagar subscribes\n");
-        printf("6. Indagar suscriptores (not really used)\n");
-        printf("7. Indagar notificados al publicar en un tópico\n");
-        printf("Introduce una opción: ");
-        int option;
-        scanf("%d", &option);
-        getchar();  // Elimina el salto de línea después de la opción
+        printf("Introduce los argumentos: ");
+        scanf(" %[^\n]", args);  // Leer hasta el salto de línea
 
-        int result;
+        saveLog(filename, ip, request, args);
 
-        switch (option) {
-            case 1:
-                result = saveStringsToFile(filename, string1, string2);
-                if (result == 0) {
-                    printf("Error al guardar los strings\n");
-                } else {
-                    printf("Strings guardados\n");
-                }
-                break;
-
-            case 2:
-                result = verifySession(string1, string2);
-                if (result == 1) {
-                    printf("Sesión verificada\n");
-                } else {
-                    printf("Sesión no verificada\n");
-                    printf("Resultado: %d\n", result);
-                }
-                break;
-
-            case 3:
-                result = checkExistence(filename, string1);
-                if (result == 1) {
-                    printf("Existe\n");
-                } else {
-                    printf("No existe\n");
-                    printf("Resultado: %d\n", result);
-                }
-                break;
-
-            case 4:
-                result = updateOrCreate(filename, string1, string2);
-                if (result == 1) {
-                    printf("Registro actualizado\n");
-                } else if (result == -1) {
-                    printf("Registro creado\n");
-                } else {
-                    printf("Error en creación de archivo\n");
-                }
-                break;
-
-            case 5:
-                char** topics = NULL;
-                int topicsCount = 0;
-                getSubscribes(string1, &topics, &topicsCount);
-                printf("Subscribes de %s: (%d)\n", string1, topicsCount);
-                for (int i = 0; i < topicsCount; i++) {
-                    printf("%s\n", topics[i]);
-                    free(topics[i]);
-                }
-                free(topics);
-                break;
-
-            case 6:
-                char** users1 = NULL;
-                int usersCount1 = 0;
-                getSubscriptors(string1, &users1, &usersCount1);
-                printf("Suscriptores de %s: (%d)\n", string1, usersCount1);
-                for (int i = 0; i < usersCount1; i++) {
-                    printf("%s\n", users1[i]);
-                    free(users1[i]);
-                }
-                free(users1);
-                break;
-
-            case 7:
-                char** users2 = NULL;
-                int usersCount2 = 0;
-                getNotified(string1, &users2, &usersCount2);
-                printf("Suscriptores de %s: (%d)\n", string1, usersCount2);
-                for (int i = 0; i < usersCount2; i++) {
-                    printf("%s\n", users2[i]);
-                    free(users2[i]);
-                }
-                free(users2);
-                break;
-
-            default:
-                printf("Opción no válida\n");
-                break;
-        }
-        printf("---------------\n\n");
+        return 0;
     }
+    else{
+        for(;;){
 
+            char filename[100];
+            char string1[100];
+            char string2[100];
+
+            printf("Introduce el nombre del archivo: ");
+            fgets(filename, sizeof(filename), stdin);
+            filename[strcspn(filename, "\n")] = 0;  // Elimina el salto de línea al final
+
+            printf("Introduce el primer string: ");
+            fgets(string1, sizeof(string1), stdin);
+            string1[strcspn(string1, "\n")] = 0;  // Elimina el salto de línea al final
+
+            printf("Introduce el segundo string: ");
+            fgets(string2, sizeof(string2), stdin);
+            string2[strcspn(string2, "\n")] = 0;  // Elimina el salto de línea al final
+
+            printf("1. Guardar strings en el archivo\n");
+            printf("2. Verificar sesión\n");
+            printf("3. Verificar existencia\n");
+            printf("4. Actualizar o crear registro\n");
+            printf("5. Indagar subscribes\n");
+            printf("6. Indagar suscriptores (not really used)\n");
+            printf("7. Indagar notificados al publicar en un tópico\n");
+            printf("8. Poner socket\n");
+            printf("9. Extraer socket\n");
+            printf("Introduce una opción: ");
+            int option;
+            scanf("%d", &option);
+            getchar();  // Elimina el salto de línea después de la opción
+
+            int result;
+            int sockfd;
+
+            switch (option) {
+                case 1:
+                    result = saveStringsToFile(filename, string1, string2);
+                    if (result == 0) {
+                        printf("Error al guardar los strings\n");
+                    } else {
+                        printf("Strings guardados\n");
+                    }
+                    break;
+
+                case 2:
+                    result = verifySession(string1, string2);
+                    if (result == 1) {
+                        printf("Sesión verificada\n");
+                    } else {
+                        printf("Sesión no verificada\n");
+                        printf("Resultado: %d\n", result);
+                    }
+                    break;
+
+                case 3:
+                    result = checkExistence(filename, string1);
+                    if (result == 1) {
+                        printf("Existe\n");
+                    } else {
+                        printf("No existe\n");
+                        printf("Resultado: %d\n", result);
+                    }
+                    break;
+
+                case 4:
+                    result = updateOrCreate(filename, string1, string2);
+                    if (result == 1) {
+                        printf("Registro actualizado\n");
+                    } else if (result == -1) {
+                        printf("Registro creado\n");
+                    } else {
+                        printf("Error en creación de archivo\n");
+                    }
+                    break;
+
+                case 5:
+                    char** topics = NULL;
+                    int topicsCount = 0;
+                    getSubscribes(string1, &topics, &topicsCount);
+                    printf("Subscribes de %s: (%d)\n", string1, topicsCount);
+                    for (int i = 0; i < topicsCount; i++) {
+                        printf("%s\n", topics[i]);
+                        free(topics[i]);
+                    }
+                    free(topics);
+                    break;
+
+                case 6:
+                    char** users1 = NULL;
+                    int usersCount1 = 0;
+                    getSubscriptors(string1, &users1, &usersCount1);
+                    printf("Suscriptores de %s: (%d)\n", string1, usersCount1);
+                    for (int i = 0; i < usersCount1; i++) {
+                        printf("%s\n", users1[i]);
+                        free(users1[i]);
+                    }
+                    free(users1);
+                    break;
+
+                case 7:
+                    char** users2 = NULL;
+                    int usersCount2 = 0;
+                    getNotified(string1, &users2, &usersCount2);
+                    printf("Suscriptores de %s: (%d)\n", string1, usersCount2);
+                    for (int i = 0; i < usersCount2; i++) {
+                        printf("%s\n", users2[i]);
+                        free(users2[i]);
+                    }
+                    free(users2);
+                    break;
+
+                case 8:
+                    sockfd = atoi(string2);
+                    printf("Socket: %d\n", sockfd);
+                    result = updateOrCreate("dbSockets.csv", string1, string2);
+                    if (result == 1) {
+                        printf("Registro actualizado\n");
+                    } else if (result == -1) {
+                        printf("Registro creado\n");
+                    } else {
+                        printf("Error en creación de archivo\n");
+                    }
+                    break;
+
+                case 9:
+                    // getting the socketfd
+                    sockfd = getSocketByUsername(string1);
+                    if (sockfd == -1) {
+                        printf("No se encontró el nombre de usuario\n");
+                    } else {
+                        printf("Socket: %d\n", sockfd);
+                    }
+                    break;
+
+                default:
+                    printf("Opción no válida\n");
+                    break;
+            }
+            printf("---------------\n\n");
+        }
+    }
     return 0;
 }

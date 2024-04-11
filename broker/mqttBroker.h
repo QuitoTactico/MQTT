@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+#include <time.h>
+
 #define MY_PORT "1883"
 #define MY_IP ""
 #define QUEUESIZE 1
@@ -33,3 +35,12 @@ int handleServer(void *args);
 
 // returns 0 if the server should close
 int close_server();
+
+//================================================================================================================
+
+/*******************************************/
+/*                                         */
+/*                DATABASE                 */
+/*                                         */
+/*******************************************/
+
