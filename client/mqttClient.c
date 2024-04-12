@@ -66,12 +66,13 @@ int handleFixHeader(char *message, uint8_t type);
 /*                                         */
 /*******************************************/
 
-// 1 for new session 0 for existing sessing if there are no previus sessions
-#define CLEANSTART 0b00000010
-// 1 if the client wants to send others a message of a unespected disconection
+// 1 for new session 0 for existing session if there are no previous sessions
+#define CLEANSESSION 0b00000010
+// 1 if the client wants to send others a message of an unexpected disconnection
 #define WILLFLAG 0b00000100
-// 1 | 2 | 3 depending on the level of assuranse that the user wants if the will flag is set to 1
+// 1 | 2 | 3 depending on the level of assurance that the user wants if the will flag is set to 1
 #define WILLQOS1 0b00001000
+#define WILLQOS2 0b00010000
 // if 1 the server must return the message as a retainable message
 #define WILLRETAIN 0b00100000
 // if set to 1 the payload has the password
@@ -281,6 +282,8 @@ int createConnect(char *message)
 
     // FLAGS
     int flags = offset;
+    variableAndPayload[flags] = 0; // Initialize flags to 0
+
     int answerWill;
     printf("Do you want a Will (0 no | 1 yes): ");
     scanf("%d", &answerWill);
@@ -289,7 +292,6 @@ int createConnect(char *message)
     if (answerWill)
     {
         variableAndPayload[flags] |= WILLFLAG;
-
 
         printf("Put the level of QoS for the WILL (0 or 1): ");
         scanf("%d", &answerQoS);
@@ -310,6 +312,13 @@ int createConnect(char *message)
         variableAndPayload[flags] = 0;
     }
 
+    int newSession;
+    printf("Do you want a new/clean session? (0 no, i have one | 1 yes): ");
+    scanf("%d", &newSession);
+    getchar();
+    if (newSession)
+        variableAndPayload[flags] |= CLEANSESSION;
+
     offset++;
 
     // KEEP ALIVE
@@ -317,22 +326,15 @@ int createConnect(char *message)
     memcpy(variableAndPayload + offset, &keep_alive, 2);
 
     offset += 2;
-
-    int answersession;
-    printf("Do you have a created session (0 no | 1 yes): ");
-    scanf("%d", &answersession);
-    getchar();
     
     // ========== ID ==========
-    if (answersession)
+    if (newSession)
     {
-        utfHandle(variableAndPayload, "ID: ", &offset);
+        utfHandle(variableAndPayload, "Create your ID: ", &offset);
     }
     else
     {
-        uint16_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 2);
-        offset += 2;
+        utfHandle(variableAndPayload, "Session ID: ", &offset);
     }
 
     // ========== WILL ==========
@@ -350,22 +352,14 @@ int createConnect(char *message)
     }
 
     // ========== USERNAME AND PASSWORD ==========
-    if (answersession)
-    {
-        uint32_t i = 0;
-        memcpy(variableAndPayload + offset, &i, 4);
-        offset += 4;
-    }
-    else
-    {
-        variableAndPayload[flags] |= USERNAME;
-        variableAndPayload[flags] |= PASSWORD;
-
-        utfHandle(variableAndPayload, "user name: ", &offset);
-
-        utfHandle(variableAndPayload, "password: ", &offset);
-    }
-
+    
+    // in our case, we will always send a username and password, even in the case of a new session
+    // in the case of a new session, the broker will create a new session with the username and password
+    variableAndPayload[flags] |= USERNAME;
+    variableAndPayload[flags] |= PASSWORD;
+    utfHandle(variableAndPayload, "username: ", &offset);
+    utfHandle(variableAndPayload, "password: ", &offset);
+    
     int remainingLengthSize = encodeRemainingLength(offset, message + 1);
 
     memcpy(message + 1 + remainingLengthSize, variableAndPayload, offset);

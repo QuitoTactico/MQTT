@@ -337,7 +337,7 @@ void handleConnect(char *message, int offset, int sockfd)
 
     connectPayload payload = readConnectPayload(message, offset);
 
-    if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
+    if ((variable.connectFlags & CLEANSESSION) == CLEANSESSION)
     {
         printf("-clean start-\n");
         // si el cliente ingresó usuario y contraseña, se creará esa sesión
@@ -643,6 +643,8 @@ void handleSubscribe(char *message, int offset, int sockfd)
         printf("subscribe topic size: %d\n", payload[i].size);
         printf("subscribe topic: %s\n", payload[i].topic);
         printf("subscribe topic qos: %d\n", payload[i].qos);
+
+        DBupdateOrCreate("dbSubscribes.csv", variable.identifier, payload[i].topic);
     }
 
     sendSuback(sockfd, variable.identifier, payload, amount);
@@ -744,6 +746,39 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
 /*                                         */
 /*******************************************/
 
+char quit[5];
+int stop = 1;
+
+int close_server()
+{
+    return stop;
+}
+
+// This is basically the SECOND MAIN. It is the function that is called in 
+// the broker.c to handle server commands, like "quit".
+int handleServer(void *message)
+{
+
+    while (1)
+    {
+        printf("Enter 'quit' to exit: ");
+        fgets(quit, sizeof(quit), stdin);
+        // Remove newline character if present
+        quit[strcspn(quit, "\n")] = 0;
+
+        if (strcmp(quit, "quit") == 0)
+        {
+            stop = 0;
+            printf("Exiting...\n");
+            break;
+        }
+    }
+
+    return 0;
+}
+
+// ---------------------------------------
+
 int handleMessage(char *message, int sockfd){
 
     fixedHeader header = handleFixedHeader(message, sockfd);
@@ -789,6 +824,8 @@ int handleMessage(char *message, int sockfd){
     }
 }
 
+// This is like the THIRD MAIN function that is called in the broker.c to 
+// handle the incoming messages. It first reads the fixed header to categorize
 int handleRecv(void *message)
 {
     int brokersockfd = *(int *)message;
@@ -841,35 +878,4 @@ int handleRecv(void *message)
     close(clientsockfd);
 
     return 0;
-}
-
-// ---------------------------------------
-
-char quit[5];
-int stop = 1;
-
-int handleServer(void *message)
-{
-
-    while (1)
-    {
-        printf("Enter 'quit' to exit: ");
-        fgets(quit, sizeof(quit), stdin);
-        // Remove newline character if present
-        quit[strcspn(quit, "\n")] = 0;
-
-        if (strcmp(quit, "quit") == 0)
-        {
-            stop = 0;
-            printf("Exiting...\n");
-            break;
-        }
-    }
-
-    return 0;
-}
-
-int close_server()
-{
-    return stop;
 }
