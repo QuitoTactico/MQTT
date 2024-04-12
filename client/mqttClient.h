@@ -10,6 +10,11 @@
 
 #define BROKER_PORT "1883"
 
+typedef struct {
+    int sockfd;
+    char *logDir;
+} ThreadArgs;
+
 //================================================================================================================
 
 /*******************************************/
@@ -57,6 +62,8 @@ int connectSocket(char* port, char* ip);
 // prints the info of the server socket and the client socket
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage* their_addr, socklen_t addr_size);
 
-int handleRequest(void *args);
+void getSocketIP(int sockfd, char* ip);
 
-int handleRecv(void * sockfd);
+void DBsaveLog(char* dir, char* ip, char* request, char* args);
+
+int handleRecv(void *arg);

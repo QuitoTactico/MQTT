@@ -594,6 +594,20 @@ int connectSocket(char *ip, char *port)
     return sockfd;
 }
 
+// modifica el string ip con la dirección IP del socket
+void getSocketIP(int sockfd, char* ip) {
+    struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    int res = getpeername(sockfd, (struct sockaddr *)&addr, &addr_size);
+
+    if (res != 0) {
+        printf("Error obteniendo la dirección IP\n");
+        return;
+    }
+
+    inet_ntop(AF_INET, &(addr.sin_addr), ip, INET_ADDRSTRLEN);
+}
+
 int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_addr, socklen_t addr_size)
 {
     const int NAMESIZE = 100;
@@ -612,11 +626,41 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     printf("ip conection from %s with port %s\n", hostName, serviceName);
 }
 
-int handleRecv(void * sockfd){
+void DBsaveLog(char* dir, char* ip, char* request, char* args) {
+    FILE* file = fopen(dir, "a");
+    if (file == NULL) {
+        printf("No se pudo abrir el archivo log\n");
+        return;
+    }
 
-    int brokerSockfd = *(int*)sockfd;
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    fprintf(file, "%d-%02d-%02d %02d:%02d:%02d %s %s ",
+        tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+        tm.tm_hour, tm.tm_min, tm.tm_sec,
+        ip, request);
+
+    for (int i = 0; i < strlen(args); i++) {
+        fprintf(file, "%02X", (unsigned char)args[i]);
+    }
+
+    fprintf(file, "\n");
+    fclose(file);
+}
+
+int handleRecv(void * arg){
+    //int brokerSockfd = *(int*)sockfd;
+
+    // receiving the arguments via struct
+    ThreadArgs *args = (ThreadArgs *)arg;
+    int brokerSockfd = args->sockfd;
+    char *logDir = args->logDir;
+
 
     char buf[500];
+
+    char brokerIP[INET_ADDRSTRLEN];
+    getSocketIP(brokerSockfd, brokerIP);
 
     while(1)
     {
@@ -626,12 +670,15 @@ int handleRecv(void * sockfd){
         {
         case PUBACK:
             handlePuback(buf);
+            DBsaveLog(logDir, brokerIP, "PUBACK", buf);
             break;
         case SUBACK:
             handleSuback(buf);
+            DBsaveLog(logDir, brokerIP, "SUBACK", buf);
             break;
         case PUBLISH:
             handlePublish(buf);
+            DBsaveLog(logDir, brokerIP, "PUBLISH", buf);
             break;
         default:
             break;

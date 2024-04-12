@@ -2,5 +2,6 @@ st0255.pem
 /broker/broker
 /client/client
 /broker/dbManagerBeta.c
-broker/dbManager
+/broker/dbManager
 /.vscode/
+*.csv
