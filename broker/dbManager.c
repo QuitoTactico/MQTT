@@ -182,8 +182,8 @@ int DBupdateOrCreateSession(const char* id, const char* username, const char* pa
 
 // ---------------------------------- SUBSCRIPTIONS -----------------------------------------
 
-// envíale el username y un array vacío con los tópicos. Modificará el arreglo y te retornará cuántos consiguió.
-int DBgetSubscribes(char* username, char*** topics) {
+// envíale el userID y un array vacío con los tópicos. Modificará el arreglo y te retornará cuántos consiguió.
+int DBgetSubscribes(char* userID, char*** topics) {
     FILE* file = fopen("dbSubscribes.csv", "r");
     int topicsCount = 0;
     char line[256];
@@ -192,7 +192,7 @@ int DBgetSubscribes(char* username, char*** topics) {
 
         char* token;
         token = strtok(line, "|");
-        if (strcmp(token, username) == 0) {
+        if (strcmp(token, userID) == 0) {
             token = strtok(NULL, "|");
             (topicsCount)++;
             *topics = realloc(*topics, (topicsCount) * sizeof(char*));
@@ -203,9 +203,9 @@ int DBgetSubscribes(char* username, char*** topics) {
     return topicsCount;
 }
 
-int DBisUserInList(char* username, char** users, int usersCount) {
+int DBisUserInList(char* userID, char** users, int usersCount) {
     for (int i = 0; i < usersCount; i++) {
-        if (strcmp(users[i], username) == 0) {
+        if (strcmp(users[i], userID) == 0) {
             return 1;
         }
     }
@@ -222,15 +222,15 @@ int DBgetSubscriptors(char* topic, char*** users) {
 
         char* token;
         token = strtok(line, "|");
-        char* username = strdup(token);
+        char* userID = strdup(token);
         token = strtok(NULL, "|");
 
-        if (strcmp(token, topic) == 0 && !DBisUserInList(username, *users, usersCount)) {
+        if (strcmp(token, topic) == 0 && !DBisUserInList(userID, *users, usersCount)) {
             (usersCount)++;
             *users = realloc(*users, (usersCount) * sizeof(char*));
-            (*users)[usersCount - 1] = username;
+            (*users)[usersCount - 1] = userID;
         } else {
-            free(username);
+            free(userID);
         }
     }
     fclose(file);
@@ -239,7 +239,7 @@ int DBgetSubscriptors(char* topic, char*** users) {
 
 // ---------------------------------- SOCKETS -----------------------------------------
 
-int DBgetSocketByUsername(const char* username) {
+int DBgetSocketByUserID(const char* userID) {
     FILE* file = fopen("dbSockets.csv", "r");
     if (file == NULL) {
         printf("No se pudo abrir el archivo dbSockets.csv\n");
@@ -254,7 +254,7 @@ int DBgetSocketByUsername(const char* username) {
         token = strtok(line, "|");
         char* fileUsername = strdup(token);
         token = strtok(NULL, "|");
-        if (strcmp(fileUsername, username) == 0) {
+        if (strcmp(fileUsername, userID) == 0) {
             free(fileUsername);
             fclose(file);
             return atoi(token); // Convierte la cadena a int y la retorna
@@ -266,7 +266,36 @@ int DBgetSocketByUsername(const char* username) {
     return -1; // Retorna -1 si no se encontró el nombre de usuario
 }
 
-DBgetClientIDBySocket()
+// retorna el ID de usuario asociado a un socket
+// retorna -1 si no se encontró el nombre de usuario, 1 si lo encontró
+int DBgetUserIDbySocket(int sockfd, char* userID){
+    FILE* file = fopen("dbSockets.csv", "r");
+    if (file == NULL) {
+        printf("No se pudo abrir el archivo dbSockets.csv\n");
+        return -1;
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = 0; // Elimina el salto de línea al final
+
+        char* token;
+        token = strtok(line, "|");
+        char* fileUsername = strdup(token);
+        token = strtok(NULL, "|");
+        if (atoi(token) == sockfd) {
+            strcpy(userID, fileUsername);
+            free(fileUsername);
+            fclose(file);
+            return 1;
+        } else {
+            free(fileUsername);
+        }
+    }
+    fclose(file);
+    return -1; // Retorna -1 si no se encontró el nombre de usuario
+
+}
 
 // ---------------------------------- LOG  -----------------------------------------
 
@@ -457,7 +486,7 @@ int DBtest() {
 
                 case 8:
                     // getting the socketfd
-                    sockfd = DBgetSocketByUsername(string1);
+                    sockfd = DBgetSocketByUserID(string1);
                     if (sockfd == -1) {
                         printf("No se encontró el nombre de usuario\n");
                     } else {
