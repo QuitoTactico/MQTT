@@ -1,14 +1,37 @@
 #include "mqttClient.h"
-#include <stdlib.h>
 
 int main(int argc, char *argv[])
 {
+    char broker_ip[16];
+    char broker_port[6]; // Asume que un puerto no superará los 5 caracteres
+    char *logDir = NULL;
+
+    // Comprueba cuántos argumentos ha proporcionado el usuario. Si sólo proporcionó el log dir, 
+    // solicita la dirección IP del broker, y define el puerto como el default.
+    if (argc == 2){
+        printf("Enter the broker IP: ");
+        scanf("%s", broker_ip);
+    
+        strncpy(broker_port, BROKER_PORT, sizeof(broker_port) - 1);
+            
+        logDir = argv[1];
+    }
+    else if(argc == 4){
+        strncpy(broker_ip, argv[1], sizeof(broker_ip) - 1);
+
+        strncpy(broker_port, argv[2], sizeof(broker_port) - 1);
+
+        logDir = argv[3];
+    }
+    else
+    {
+        printf("Please use one of this options:\n./client </path/log.log>\n./client <ip> <port> </path/log.log>\n");
+        return 1;
+    }
+
+
     char message[500];
     int brokerSockfd;
-
-    char broker_ip[30];
-    printf("Enter the broker IP: ");
-    scanf("%s", broker_ip);
 
     int connectAccepted = 0;
     while (connectAccepted != 1)
@@ -17,20 +40,28 @@ int main(int argc, char *argv[])
 
         int connectQos = createConnect(message);
 
-        brokerSockfd = connectSocket(broker_ip, BROKER_PORT);
+        brokerSockfd = connectSocket(broker_ip, broker_ip);
 
         send(brokerSockfd, &message, 500, 0);
 
         // receive connack
         recv(brokerSockfd, connack, 4, 0);
 
+        char brokerIP[INET_ADDRSTRLEN];
+        getSocketIP(brokerSockfd, brokerIP);
+        DBsaveLog(logDir, brokerIP, "CONNACK", connack);
+
         printf("Connecting to the broker\n\n");
         connectAccepted = handleConnack(connack);
     }
 
+    ThreadArgs args;
+    args.sockfd = brokerSockfd;
+    args.logDir = logDir;
+
     thrd_t recvThread;
 
-    thrd_create(&recvThread, handleRecv, &brokerSockfd);
+    thrd_create(&recvThread, handleRecv, &args);
 
     char answer[20];
 
