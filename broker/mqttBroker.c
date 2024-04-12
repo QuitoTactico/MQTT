@@ -55,7 +55,7 @@ typedef struct
 #define QOS 0b00000110    // PUBLISH QUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETAINED MESSAGE FLAG
 
-void handleFixedHeader(char *args, int sockfd);
+void handleFixedHeader(char *message, int sockfd);
 
 //================================================================================================================
 
@@ -118,8 +118,8 @@ typedef struct
     char *passWord;
 } connectPayload;
 
-void handleConnect(char *args, int offset, int sockfd);
-connectPayload readConnectPayload(char *args, int offset);
+void handleConnect(char *message, int offset, int sockfd);
+connectPayload readConnectPayload(char *message, int offset);
 void freeConnectPayload(connectPayload *payload);
 void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload);
 
@@ -165,7 +165,7 @@ typedef struct
     char *data;
 } publishPayload;
 
-void handlePublish(char *args, int offset, int sockfd);
+void handlePublish(char *message, int offset, int sockfd);
 void sendPuback(int sockfd, uint16_t id);
 
 //================================================================================================================
@@ -194,7 +194,7 @@ typedef struct
     uint8_t qos;
 } subscribePayload;
 
-void handleSubscribe(char *args, int offset, int sockfd);
+void handleSubscribe(char *message, int offset, int sockfd);
 void freeSubscribe(subscribePayload *sp, int amount);
 void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount);
 
@@ -233,8 +233,8 @@ uint32_t decodeRemainingLength(const char* buffer) {
 }
 
 // macro for the utf handling of inputs
-#define UTF_HANDLE(name, field, sizeField, args, offset)        \
-    memcpy(&(name.sizeField), args + offset, 2);                \
+#define UTF_HANDLE(name, field, sizeField, message, offset)        \
+    memcpy(&(name.sizeField), message + offset, 2);                \
     name.sizeField = ntohs(name.sizeField);                     \
                                                                 \
     offset += 2;                                                \
@@ -246,7 +246,7 @@ uint32_t decodeRemainingLength(const char* buffer) {
             name.field = (char *)malloc(name.sizeField + 1);    \
         } while (name.field == NULL);                           \
                                                                 \
-        memcpy(name.field, args + offset, name.sizeField);      \
+        memcpy(name.field, message + offset, name.sizeField);      \
                                                                 \
         name.field[name.sizeField] = '\0';                      \
                                                                 \
@@ -261,17 +261,19 @@ uint32_t decodeRemainingLength(const char* buffer) {
 /*                                         */
 /*******************************************/
 
-void handleFixedHeader(char *args, int sockfd)
+void handleFixedHeader(char *message, int sockfd)
 {
     int offset = 0;
     fixedHeader header;
 
-    memcpy(&header.messageType, args + offset, 1);
+    memcpy(&header.messageType, message, 1);
     offset += 1;
     
-    header.remainingLenght = decodeRemainingLength(args + 1);
+    header.remainingLenght = decodeRemainingLength(message + 1);
 
     offset += remainingOffset(header.remainingLenght);
+
+    uint8_t qos = (header.messageType&QOS) >> 1;
 
     switch (header.messageType & FIXED)
     {
@@ -280,28 +282,28 @@ void handleFixedHeader(char *args, int sockfd)
         printf("####### user connecting #######\n");
         printf("###############################\n\n");
 
-        handleConnect(args, offset, sockfd);
+        handleConnect(message, offset, sockfd);
         break;
     case PUBLISH:
         printf("###############################\n");
         printf("####### user publishing #######\n");
         printf("###############################\n\n");
 
-        handlePublish(args, offset, sockfd);
+        handlePublish(message, offset, sockfd);
         break;
     case SUBSCRIBE:
         printf("################################\n");
         printf("####### user subscribing #######\n");
         printf("################################\n\n");
 
-        handleSubscribe(args, offset, sockfd);
+        handleSubscribe(message, offset, sockfd);
         break;
     default:
         printf("############################\n");
         printf("####### wrong header #######\n");
         printf("############################\n\n");
 
-        printf("information: %s", args);
+        printf("information: %s", message);
         printf("received message: ");
         for (int i = 7; i >= 0; i--) {
             printf("%d", (header.messageType >> i) & 1);
@@ -319,24 +321,24 @@ void handleFixedHeader(char *args, int sockfd)
 /*                                         */
 /*******************************************/
 
-void handleConnect(char *args, int offset, int sockfd)
+void handleConnect(char *message, int offset, int sockfd)
 {
     connectVariableHeader variable;
 
-    memcpy(&variable.nameLenght, args + offset, 2);
+    memcpy(&variable.nameLenght, message + offset, 2);
     variable.nameLenght = ntohs(variable.nameLenght);
     offset += 2;
-    memcpy(&variable.name, args + offset, 4);
+    memcpy(&variable.name, message + offset, 4);
     offset += 4;
-    memcpy(&variable.version, args + offset, 1);
+    memcpy(&variable.version, message + offset, 1);
     offset += 1;
-    memcpy(&variable.connectFlags, args + offset, 1);
+    memcpy(&variable.connectFlags, message + offset, 1);
     offset += 1;
-    memcpy(&variable.keepAlive, args + offset, 2);
+    memcpy(&variable.keepAlive, message + offset, 2);
     variable.keepAlive = ntohs(variable.keepAlive);
     offset += 2;
 
-    connectPayload payload = readConnectPayload(args, offset);
+    connectPayload payload = readConnectPayload(message, offset);
 
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
@@ -407,29 +409,29 @@ void handleConnect(char *args, int offset, int sockfd)
     freeConnectPayload(&payload);
 }
 
-connectPayload readConnectPayload(char *args, int offset)
+connectPayload readConnectPayload(char *message, int offset)
 {
     connectPayload payload;
 
     //========client id size========
 
-    UTF_HANDLE(payload, clientID, clientIDSize, args, offset);
+    UTF_HANDLE(payload, clientID, clientIDSize, message, offset);
 
     //========will topic size========
 
-    UTF_HANDLE(payload, willTopic, willTopicSize, args, offset);
+    UTF_HANDLE(payload, willTopic, willTopicSize, message, offset);
 
     //========will message size========
 
-    UTF_HANDLE(payload, willMessage, willMessageSize, args, offset);
+    UTF_HANDLE(payload, willMessage, willMessageSize, message, offset);
 
     //========name size========
 
-    UTF_HANDLE(payload, userName, userNameSize, args, offset);
+    UTF_HANDLE(payload, userName, userNameSize, message, offset);
 
     //========password size========
 
-    UTF_HANDLE(payload, passWord, passWordSize, args, offset);
+    UTF_HANDLE(payload, passWord, passWordSize, message, offset);
 
     return payload;
 }
@@ -490,15 +492,15 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
 /*                                         */
 /*******************************************/
 
-void handlePublish(char *args, int offset, int sockfd)
+void handlePublish(char *message, int offset, int sockfd)
 {
     // publish variable header
 
     publishVariableHeader variable;
 
-    UTF_HANDLE(variable, topic, size, args, offset);
+    UTF_HANDLE(variable, topic, size, message, offset);
 
-    memcpy(&variable.identifier, args + offset, 2);
+    memcpy(&variable.identifier, message + offset, 2);
     variable.identifier = ntohs(variable.identifier);
 
     offset += 2;
@@ -507,7 +509,7 @@ void handlePublish(char *args, int offset, int sockfd)
 
     publishPayload payload;
 
-    UTF_HANDLE(payload, data, size, args, offset);
+    UTF_HANDLE(payload, data, size, message, offset);
 
     // printing information
 
@@ -516,10 +518,23 @@ void handlePublish(char *args, int offset, int sockfd)
         printf("publish topic size: %d\n", variable.size);
         printf("publish topic: %s\n", variable.topic);
     }
+    if (variable.identifier != 0){
+        printf("publish identifier: %d\n", variable.identifier);
+    }
     if(payload.size !=0)
     {
         printf("publish data size: %d\n", payload.size);
         printf("publish data: %s\n", payload.data);
+    }
+
+    int res = DBupdateOrCreate("dbTopics.csv", variable.topic, payload.data);
+    if (res != 0){
+
+        printf("Publicado correctamente\n");
+    }
+    else
+    {
+        printf("No se pudo publicar\n");
     }
 
     sendPuback(sockfd, variable.identifier);
@@ -555,11 +570,11 @@ void sendPuback(int sockfd, uint16_t id)
 /*                                         */
 /*******************************************/
 
-void handleSubscribe(char *args, int offset, int sockfd)
+void handleSubscribe(char *message, int offset, int sockfd)
 {
     subscribeVariableHeader variable;
 
-    memcpy(&variable.identifier, args + offset, 2);
+    memcpy(&variable.identifier, message + offset, 2);
     variable.identifier = ntohs(variable.identifier);
 
     offset += 2;
@@ -567,11 +582,11 @@ void handleSubscribe(char *args, int offset, int sockfd)
     subscribePayload payload[200];
     int amount_sub = 0;
 
-    while(((args[offset] != 0) || (args[offset + 1] != 0)) && amount_sub < 200)
+    while(((message[offset] != 0) || (message[offset + 1] != 0)) && amount_sub < 200)
     {
-        UTF_HANDLE(payload[amount_sub], topic, size, args, offset);
+        UTF_HANDLE(payload[amount_sub], topic, size, message, offset);
 
-        memcpy(&payload[amount_sub].qos, args + offset, 1);
+        memcpy(&payload[amount_sub].qos, message + offset, 1);
 
         offset += 1;
 
@@ -706,9 +721,9 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     printf("####### ip conection from %s with port %s #######\n\n", hostName, serviceName);
 }
 
-int handleRecv(void *args)
+int handleRecv(void *message)
 {
-    int brokersockfd = *(int *)args;
+    int brokersockfd = *(int *)message;
 
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
@@ -763,7 +778,7 @@ int handleRecv(void *args)
 char quit[5];
 int stop = 1;
 
-int handleServer(void *args)
+int handleServer(void *message)
 {
     while (1)
     {
