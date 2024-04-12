@@ -12,13 +12,15 @@
 
 #define MY_PORT "1883"
 #define MY_IP ""
-#define QUEUESIZE 1
+#define QUEUESIZE 10
+
+
 
 //================================================================================================================
 
 /*******************************************/
 /*                                         */
-/*                 SOCKET                  */
+/*            HANDLING MESSAGES            */
 /*                                         */
 /*******************************************/
 
@@ -35,6 +37,8 @@ int handleServer(void *args);
 
 // returns 0 if the server should close
 int close_server();
+
+
 
 //================================================================================================================
 
@@ -69,7 +73,3 @@ int DBgetSocketByUsername(const char* username);
 // Log
 
 void DBsaveLog(char* dir, char* ip, char* request, char* args);
-
-// Auxiliar IP function
-
-void getIP(int sockfd, char* ip);

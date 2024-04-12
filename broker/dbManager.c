@@ -243,19 +243,6 @@ void DBsaveLog(char* dir, char* ip, char* request, char* args) {
     fclose(file);
 }
 
-void getIP(int sockfd, char* ip) {
-    struct sockaddr_in addr;
-    socklen_t addr_size = sizeof(struct sockaddr_in);
-    int res = getpeername(sockfd, (struct sockaddr *)&addr, &addr_size);
-
-    if (res != 0) {
-        printf("Error obteniendo la dirección IP\n");
-        return;
-    }
-
-    inet_ntop(AF_INET, &(addr.sin_addr), ip, INET_ADDRSTRLEN);
-}
-
 // ---------------------------------- TESTING -----------------------------------------
 
 // pura demostración
