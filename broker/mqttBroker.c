@@ -8,17 +8,17 @@
 /*                                         */
 /*******************************************/
 
-typedef struct
+typedef struct fixedHeader
 {
     uint8_t messageType;
     uint32_t remainingLenght;
 } fixedHeader;
 
-/*******************************************/
-/*                                         */
-/*              CONTROL PACKET             */
-/*                                         */
-/*******************************************/
+/**********************/
+/*                    */
+/*   CONTROL PACKET   */
+/*                    */
+/**********************/
 
 #define FIXED 0b11110000
 
@@ -45,27 +45,37 @@ typedef struct
 #define AUTH 0b11110000        // 15 || AUTHENTICATION EXCHANGE || BOTH WAYS
 //************
 
-/*******************************************/
-/*                                         */
-/*                  FLAGS                  */
-/*                                         */
-/*******************************************/
+/**********************/
+/*                    */
+/*       FLAGS        */
+/*                    */
+/**********************/
 
 #define DUP 0b00000001    // DUPLICATE DELIVERY PUBLISH
 #define QOS 0b00000110    // PUBLISH QUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETAINED MESSAGE FLAG
 
-void handleFixedHeader(char *message, int sockfd);
+fixedHeader handleFixedHeader(char *message, int sockfd);
+
+
 
 //================================================================================================================
 
+
+
 /*******************************************/
 /*                                         */
-/*         CONNECT VARIABLE HEADER         */
+/*                 CONNECT                 */
 /*                                         */
 /*******************************************/
 
-typedef struct
+/***************************/
+/*                         */
+/* CONNECT VARIABLE HEADER */
+/*                         */
+/***************************/
+
+typedef struct connectVariableHeader
 {
     // 4
     uint16_t nameLenght;
@@ -79,11 +89,11 @@ typedef struct
     uint16_t keepAlive;
 } connectVariableHeader;
 
-/*******************************************/
-/*                                         */
-/*              CONNECT FLAGS              */
-/*                                         */
-/*******************************************/
+/***************************/
+/*                         */
+/*      CONNECT FLAGS      */
+/*                         */
+/***************************/
 
 // 1 for new session 0 for existing session if there are no previous sessions
 #define CLEANSTART 0b00000010
@@ -98,13 +108,13 @@ typedef struct
 // if set to 1 the payload has the username
 #define USERNAME 0b10000000
 
-/*******************************************/
-/*                                         */
-/*             CONNECT PAYLOAD             */
-/*                                         */
-/*******************************************/
+/***************************/
+/*                         */
+/*     CONNECT PAYLOAD     */
+/*                         */
+/***************************/
 
-typedef struct
+typedef struct connectPayload
 {
     uint16_t clientIDSize;
     char *clientID;
@@ -123,13 +133,11 @@ connectPayload readConnectPayload(char *message, int offset);
 void freeConnectPayload(connectPayload *payload);
 void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload);
 
-//================================================================================================================
-
-/*******************************************/
-/*                                         */
-/*           CONNECT RETURN CODE           */
-/*                                         */
-/*******************************************/
+/***************************/
+/*                         */
+/*      CONNACK CODES      */
+/*                         */
+/***************************/
 
 #define ACCEPTED 0b00000000
 #define REFUSED_VERSION 0b00000001
@@ -138,28 +146,38 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
 #define REFUSED_WRONG_USER_PASS 0b00000100
 #define REFUSED_NOT_AUTHORIZED 0b00000101
 
+
+
 //================================================================================================================
 
+
+
 /*******************************************/
 /*                                         */
-/*         PUBLISH VARIABLE HEADER         */
+/*                 PUBLISH                 */
 /*                                         */
 /*******************************************/
 
-typedef struct
+/***************************/
+/*                         */
+/* PUBLISH VARIABLE HEADER */
+/*                         */
+/***************************/
+
+typedef struct publishVariableHeader
 {
     uint16_t size;
     char *topic;
     uint16_t identifier;
 } publishVariableHeader;
 
-/*******************************************/
-/*                                         */
-/*             PUBLISH PAYLOAD             */
-/*                                         */
-/*******************************************/
+/***************************/
+/*                         */
+/*     PUBLISH PAYLOAD     */
+/*                         */
+/***************************/
 
-typedef struct
+typedef struct publishPayload
 {
     uint16_t size;
     char *data;
@@ -168,26 +186,36 @@ typedef struct
 void handlePublish(char *message, int offset, int sockfd);
 void sendPuback(int sockfd, uint16_t id);
 
+
+
 //================================================================================================================
 
+
+
 /*******************************************/
 /*                                         */
-/*        SUBSCRIBE VARIABLE HEADER        */
+/*                SUBSCRIBE                */
 /*                                         */
 /*******************************************/
 
-typedef struct
+/***************************/
+/*                         */
+/*SUBSCRIBE VARIABLE HEADER*/
+/*                         */
+/***************************/
+
+typedef struct subscribeVariableHeader
 {
     uint16_t identifier;
-} subscribeVariableHeader;
+}subscribeVariableHeader;
 
-/*******************************************/
-/*                                         */
-/*            SUBSCRIBE PAYLOAD            */
-/*                                         */
-/*******************************************/
+/***************************/
+/*                         */
+/*    SUBSCRIBE PAYLOAD    */
+/*                         */
+/***************************/
 
-typedef struct
+typedef struct subscribePayload
 {
     uint16_t size;
     char *topic;
@@ -198,7 +226,11 @@ void handleSubscribe(char *message, int offset, int sockfd);
 void freeSubscribe(subscribePayload *sp, int amount);
 void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount);
 
+
+
 //================================================================================================================
+
+
 
 uint32_t remainingOffset(uint32_t value)
 {
@@ -261,56 +293,14 @@ uint32_t decodeRemainingLength(const char* buffer) {
 /*                                         */
 /*******************************************/
 
-void handleFixedHeader(char *message, int sockfd)
+fixedHeader handleFixedHeader(char *message, int sockfd)
 {
-    int offset = 0;
     fixedHeader header;
 
     memcpy(&header.messageType, message, 1);
-    offset += 1;
     
     header.remainingLenght = decodeRemainingLength(message + 1);
-
-    offset += remainingOffset(header.remainingLenght);
-
-    uint8_t qos = (header.messageType&QOS) >> 1;
-
-    switch (header.messageType & FIXED)
-    {
-    case CONNECT:
-        printf("###############################\n");
-        printf("####### user connecting #######\n");
-        printf("###############################\n\n");
-
-        handleConnect(message, offset, sockfd);
-        break;
-    case PUBLISH:
-        printf("###############################\n");
-        printf("####### user publishing #######\n");
-        printf("###############################\n\n");
-
-        handlePublish(message, offset, sockfd);
-        break;
-    case SUBSCRIBE:
-        printf("################################\n");
-        printf("####### user subscribing #######\n");
-        printf("################################\n\n");
-
-        handleSubscribe(message, offset, sockfd);
-        break;
-    default:
-        printf("############################\n");
-        printf("####### wrong header #######\n");
-        printf("############################\n\n");
-
-        printf("information: %s", message);
-        printf("received message: ");
-        for (int i = 7; i >= 0; i--) {
-            printf("%d", (header.messageType >> i) & 1);
-        }
-        printf("\n");
-        break;
-    }
+    return header;
 }
 
 //================================================================================================================
@@ -321,7 +311,7 @@ void handleFixedHeader(char *message, int sockfd)
 /*                                         */
 /*******************************************/
 
-void handleConnect(char *message, int offset, int sockfd)
+connectVariableHeader readConnectVariableHeader(char *message, int offset)
 {
     connectVariableHeader variable;
 
@@ -337,6 +327,14 @@ void handleConnect(char *message, int offset, int sockfd)
     memcpy(&variable.keepAlive, message + offset, 2);
     variable.keepAlive = ntohs(variable.keepAlive);
     offset += 2;
+
+    return variable;
+}
+
+void handleConnect(char *message, int offset, int sockfd)
+{
+    connectVariableHeader variable = readConnectVariableHeader(message, offset);
+    offset += 10;
 
     connectPayload payload = readConnectPayload(message, offset);
 
@@ -721,6 +719,52 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     printf("####### ip conection from %s with port %s #######\n\n", hostName, serviceName);
 }
 
+
+int handleMessage(char *message, int sockfd){
+
+    fixedHeader header = handleFixedHeader(message, sockfd);
+
+    int offset = 1 + remainingOffset(header.remainingLenght);
+    uint8_t qos = (header.messageType&QOS) >> 1;
+
+    switch (header.messageType & FIXED)
+    {
+    case CONNECT:
+        printf("###############################\n");
+        printf("####### user connecting #######\n");
+        printf("###############################\n\n");
+
+        handleConnect(message, offset, sockfd);
+        break;
+    case PUBLISH:
+        printf("###############################\n");
+        printf("####### user publishing #######\n");
+        printf("###############################\n\n");
+
+        handlePublish(message, offset, sockfd);
+        break;
+    case SUBSCRIBE:
+        printf("################################\n");
+        printf("####### user subscribing #######\n");
+        printf("################################\n\n");
+
+        handleSubscribe(message, offset, sockfd);
+        break;
+    default:
+        printf("############################\n");
+        printf("####### wrong header #######\n");
+        printf("############################\n\n");
+
+        printf("information: %s", message);
+        printf("received message: ");
+        for (int i = 7; i >= 0; i--) {
+            printf("%d", (header.messageType >> i) & 1);
+        }
+        printf("\n");
+        break;
+    }
+}
+
 int handleRecv(void *message)
 {
     int brokersockfd = *(int *)message;
@@ -761,7 +805,7 @@ int handleRecv(void *message)
         if (buf[0] == 'q')
             break;
 
-        handleFixedHeader(buf, clientsockfd);
+        handleMessage(buf, clientsockfd);
 
         memset(buf, 0, len);
     }
