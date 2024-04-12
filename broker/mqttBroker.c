@@ -514,11 +514,11 @@ void handlePublish(char *message, int offset, int sockfd)
     int res = DBupdateOrCreate("dbTopics.csv", variable.topic, payload.data);
     if (res != 0)
     {
-        printf("Publicado correctamente\n");
+        printf("Published. [%d]\n", variable.identifier);
     }
     else
     {
-        printf("No se pudo publicar\n");
+        printf("Couldn't publish. [%d]\n", variable.identifier);
     }
 
     // sending the puback
