@@ -52,11 +52,11 @@ Respecto al planteamiento lógico, se tiene en cuenta entonces diferentes diagra
 
 ## Diagrama de secuencia:
 
-![Diagrama secuencia MQTT.svg](https://prod-files-secure.s3.us-west-2.amazonaws.com/ff317640-66c2-4351-b424-8b1efec92ae0/1384084a-bd86-40af-8357-b43a40e543d8/Diagrama_secuencia_MQTT.svg)
+![Diagrama secuencia MQTT](https://github.com/QuitoTactico/MQTT/assets/78938901/99a4000b-c652-46a7-bef5-04671ce31422)
 
 ## Diagrama de despliegue:
 
-![Diagrama de despliegue.svg](https://prod-files-secure.s3.us-west-2.amazonaws.com/ff317640-66c2-4351-b424-8b1efec92ae0/f1bc4cca-e004-4e4c-b808-2786264d0101/Diagrama_de_despliegue.svg)
+![Diagrama de despliegue](https://github.com/QuitoTactico/MQTT/assets/78938901/5926a5fe-9a54-4ee0-8e98-b2fec27eb1f3)
 
 ## Diagrama de componentes:
 
