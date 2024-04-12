@@ -30,12 +30,14 @@ El objetivo de este proyecto es realizar la implementación del protocolo MQTT (
     **Comandos de Ejecución:**
     
     ./client </path/log.log> → Desde la carpeta MQTT/client/
+    ./client <ip> <port> </path/log.log>
     
-    ./broker <ip> <port> </path/log.log> → Desde la carpeta MQTT/broker/
+    ./broker </path/log.log> → Desde la carpeta MQTT/broker/
+    ./broker <ip> <port> </path/log.log>
     
     **Notas adicionales:**
     
-    Para identificar los datos, se utilizan las credenciales de usuario y contraseña en el broker ya que este mismo es privado y el ID se genera como un número aleatorio, por lo que se validan a través de estos 2 campos
+    Para identificar las sesiones, se utilizan las credenciales de ID, Nombre de usuario y contraseña en el broker, ya que este es privado, por lo que las conexiones se validan a través de estos 3 campos
     
 
 # Desarrollo
