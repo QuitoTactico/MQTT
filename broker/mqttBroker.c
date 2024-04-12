@@ -186,7 +186,7 @@ typedef struct connectVariableHeader
 /***************************/
 
 // 1 for new session 0 for existing session if there are no previous sessions
-#define CLEANSTART 0b00000010
+#define CLEANSESSION 0b00000010
 // 1 if the client wants to send others a message of a unexpected disconection
 #define WILLFLAG 0b00000100
 // 1 | 2 | 3 depending on the level of assurance that the user wants if the will flag is set to 1
@@ -307,13 +307,13 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
     connackMessage[2] = 0x00;
 
     // state
-    if(variable.version != 0x05){
-        connackMessage[3] = REFUSED_VERSION;
+    if((variable.version != 0x03)&&(variable.version != 0x04)){
+        connackMessage[3] = REFUSED_VERSION;    // server only accepts version 3.1 and 3.1.1
     }
     else if((payload.clientIDSize == 0) || (payload.clientIDSize > 23)){
         connackMessage[3] = REFUSED_IDENTIFIER;
     }
-    else if(DBverifySession(payload.userName, payload.passWord) != 1){
+    else if(DBverifySession(payload.clientID, payload.userName, payload.passWord) != 1){
         connackMessage[3] = REFUSED_WRONG_USER_PASS;
     }
     else{
@@ -339,24 +339,24 @@ void handleConnect(char *message, int offset, int sockfd)
 
     if ((variable.connectFlags & CLEANSESSION) == CLEANSESSION)
     {
-        printf("-clean start-\n");
+        printf("-clean session-\n");
         // si el cliente ingresó usuario y contraseña, se creará esa sesión
         if (((variable.connectFlags & USERNAME) == USERNAME) && ((variable.connectFlags & PASSWORD) == PASSWORD)){
-            int createdOrUpdated = DBupdateOrCreate("dbSessions.csv", payload.userName, payload.passWord);
+            int createdOrUpdated = DBupdateOrCreateSession(payload.clientID, payload.userName, payload.passWord);
             if(createdOrUpdated == -1){
-                printf("Session with username and password CREATED\n");
+                printf("Session with id, username and password CREATED\n");
             }else if(createdOrUpdated == 1){
-                printf("Session with username and password UPDATED\n");
+                printf("Session with id, username and password UPDATED\n");
             } 
         // si no los ingresó, o sólo ingresó uno, su usuario y contraseña serán su ID
         }else{
-            DBupdateOrCreate("dbSessions.csv", payload.userName, payload.passWord);
+            DBupdateOrCreateSession(payload.clientID, payload.clientID, payload.clientID);
             printf("Session with username and password equals to the ID. Username: %s, Password: %s\n", payload.clientID, payload.clientID);
         }
     }
     if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
     {
-        printf("-has will flags-\n");
+        printf("-has will flag-\n");
     }
     if ((variable.connectFlags & WILLQOS) == WILLQOS)
     {
@@ -377,27 +377,27 @@ void handleConnect(char *message, int offset, int sockfd)
 
     if (payload.clientIDSize != 0)
     {
-        printf("clientID size: %d\n", payload.clientIDSize);
+        //printf("clientID size: %d\n", payload.clientIDSize);
         printf("clientID: %s\n", payload.clientID);
     }
     if (payload.willTopicSize != 0)
     {
-        printf("will topic size: %d\n", payload.willTopicSize);
+        //printf("will topic size: %d\n", payload.willTopicSize);
         printf("will topic: %s\n", payload.willTopic);
     }
     if (payload.willMessageSize != 0)
     {
-        printf("will message size: %d\n", payload.willMessageSize);
+        //printf("will message size: %d\n", payload.willMessageSize);
         printf("will message: %s\n", payload.willMessage);
     }
     if (payload.userNameSize != 0)
     {
-        printf("user name size: %d\n", payload.userNameSize);
+        //printf("user name size: %d\n", payload.userNameSize);
         printf("user name: %s\n", payload.userName);
     }
     if (payload.passWordSize != 0)
     {
-        printf("password size: %d\n", payload.passWordSize);
+        //printf("password size: %d\n", payload.passWordSize);
         printf("password: %s\n", payload.passWord);
     }
 
