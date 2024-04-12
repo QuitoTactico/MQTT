@@ -121,7 +121,7 @@ typedef struct
 void handleConnect(char *args, int offset, int sockfd);
 connectPayload readConnectPayload(char *args, int offset);
 void freeConnectPayload(connectPayload *payload);
-void sendConnack(int sockfd);
+void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload);
 
 //================================================================================================================
 
@@ -341,6 +341,19 @@ void handleConnect(char *args, int offset, int sockfd)
     if ((variable.connectFlags & CLEANSTART) == CLEANSTART)
     {
         printf("-clean start-\n");
+        // si el cliente ingresó usuario y contraseña, se creará esa sesión
+        if (((variable.connectFlags & USERNAME) == USERNAME) && ((variable.connectFlags & PASSWORD) == PASSWORD)){
+            int createdOrUpdated = DBupdateOrCreate("dbSessions.csv", payload.userName, payload.passWord);
+            if(createdOrUpdated == -1){
+                printf("Session with username and password CREATED\n");
+            }else if(createdOrUpdated == 1){
+                printf("Session with username and password UPDATED\n");
+            } 
+        // si no los ingresó, o sólo ingresó uno, su usuario y contraseña serán su ID
+        }else{
+            DBupdateOrCreate("dbSessions.csv", payload.userName, payload.passWord);
+            printf("Session with username and password equals to the ID. Username: %s, Password: %s\n", payload.clientID, payload.clientID);
+        }
     }
     if ((variable.connectFlags & WILLFLAG) == WILLFLAG)
     {
@@ -389,7 +402,7 @@ void handleConnect(char *args, int offset, int sockfd)
         printf("password: %s\n", payload.passWord);
     }
 
-    sendConnack(sockfd);
+    sendConnack(sockfd, variable, payload);
 
     freeConnectPayload(&payload);
 }
@@ -435,7 +448,7 @@ void freeConnectPayload(connectPayload *payload)
         free(payload->passWord);
 }
 
-void sendConnack(int sockfd)
+void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload)
 {
     char connackMessage[4];
 
@@ -448,7 +461,19 @@ void sendConnack(int sockfd)
     connackMessage[2] = 0x00;
 
     // state
-    connackMessage[3] = ACCEPTED;
+    if(variable.version != 0x05){
+        connackMessage[3] = REFUSED_VERSION;
+    }
+    else if((payload.clientIDSize == 0) || (payload.clientIDSize > 23)){
+        connackMessage[3] = REFUSED_IDENTIFIER;
+    }
+    else if(DBverifySession(payload.userName, payload.passWord) != 1){
+        connackMessage[3] = REFUSED_WRONG_USER_PASS;
+    }
+    else{
+        connackMessage[3] = ACCEPTED;
+    }
+    
 
     int result = send(sockfd, connackMessage, 4, 0);
     
