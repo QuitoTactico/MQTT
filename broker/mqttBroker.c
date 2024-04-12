@@ -27,27 +27,27 @@ typedef struct fixedHeader
 #define PUBLISH 0b00110000 // 3 || PUBLISH MESSAGE || BOTH WAYS
 #define PUBACK 0b01000000  // 4 || PUBLISH ACK     || BOTH WAYS
 
-// WILL NOT IMPLEMENT FOR NOW
+/* WILL NOT IMPLEMENT FOR NOW
 #define PUBREC 0b01010000  // 5 || PUBLISH RECEIVE  || BOTH WAYS
 #define PUBREL 0b01100000  // 6 || PUBLISH RELEASE  || BOTH WAYS
 #define PUBCOMP 0b01110000 // 7 || PUBLISH COMPLETE || BOTH WAYS
-//************
+*/
 
 #define SUBSCRIBE 0b10000000 // 8 || SUBSCRIBE REQUEST || CLIENT TO SERVER
 #define SUBACK 0b10010000    // 9 || SUBSCRIBE ACK     || SERVER TO CLIENT
 
-// WILL NOT IMPLEMENT FOR NOW
+/* WILL NOT IMPLEMENT FOR NOW
 #define UNSUBSCRIBE 0b10100000 // 10 || UNSUBSCRIBE REQUEST     || CLIENT TO SERVER
 #define UNSUBACK 0b10110000    // 11 || UNSUBSCRIBE ACK         || SERVER TO CLIENT
 #define PINGREQ 0b11000000     // 12 || PING REQUEST            || CLIENT TO SERVER
 #define PINGRESP 0b11010000    // 13 || PING RESPONSE           || SERVER TO CLIENT
 #define DISCONNECT 0b11100000  // 14 || CLIENT IS DISCONNECTING || BOTH WAYS
 #define AUTH 0b11110000        // 15 || AUTHENTICATION EXCHANGE || BOTH WAYS
-//************
+*/
 
 /**********************/
 /*                    */
-/*       FLAGS        */
+/*    FIXED FLAGS     */
 /*                    */
 /**********************/
 
@@ -55,7 +55,97 @@ typedef struct fixedHeader
 #define QOS 0b00000110    // PUBLISH QUALITY OF SERVICE
 #define RETAIN 0b00001000 // PUBLISH RETAINED MESSAGE FLAG
 
-fixedHeader handleFixedHeader(char *message, int sockfd);
+// ---------------------------------------
+// defined in auxiliar functions
+uint32_t decodeRemainingLength(const char* buffer);
+
+fixedHeader handleFixedHeader(char *message, int sockfd)
+{
+    fixedHeader header;
+
+    memcpy(&header.messageType, message, 1);
+    
+    header.remainingLenght = decodeRemainingLength(message + 1);
+    return header;
+}
+
+
+
+//================================================================================================================
+
+
+
+/*******************************************/
+/*                                         */
+/*            AUXILIAR FUNCTIONS           */
+/*                                         */
+/*******************************************/
+
+uint32_t decodeRemainingLength(const char* buffer) {
+    uint32_t value = 0;
+    uint32_t multiplier = 1;
+    size_t index = 0;
+
+    do {
+        uint8_t encodedByte = buffer[index++];
+        value += (encodedByte & 127) * multiplier;
+
+        multiplier *= 128;
+        if (multiplier > 128*128*128) {
+            fprintf(stderr, "remaining length malformado en el paquete MQTT\n");
+            return 0;
+        }
+    } while ((buffer[index-1] & 128) != 0);
+
+    return value;
+}
+
+uint32_t remainingOffset(uint32_t value)
+{
+    if (value <= 0xFF) {
+        return 1;
+    } else if (value <= 0xFFFF) {
+        return 2;
+    } else if (value <= 0xFFFFFF) {
+        return 3;
+    } else {
+        return 4;
+    }
+}
+
+void getSocketIP(int sockfd, char* ip) {
+    struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    int res = getpeername(sockfd, (struct sockaddr *)&addr, &addr_size);
+
+    if (res != 0) {
+        printf("Error obteniendo la dirección IP\n");
+        return;
+    }
+
+    inet_ntop(AF_INET, &(addr.sin_addr), ip, INET_ADDRSTRLEN);
+}
+
+// macro for the utf handling of inputs
+#define UTF_HANDLE(name, field, sizeField, message, offset)        \
+    memcpy(&(name.sizeField), message + offset, 2);                \
+    name.sizeField = ntohs(name.sizeField);                     \
+                                                                \
+    offset += 2;                                                \
+                                                                \
+    if (name.sizeField != 0)                                    \
+    {                                                           \
+        do                                                      \
+        {                                                       \
+            name.field = (char *)malloc(name.sizeField + 1);    \
+        } while (name.field == NULL);                           \
+                                                                \
+        memcpy(name.field, message + offset, name.sizeField);      \
+                                                                \
+        name.field[name.sizeField] = '\0';                      \
+                                                                \
+        offset += name.sizeField;                               \
+    }
 
 
 
@@ -128,11 +218,6 @@ typedef struct connectPayload
     char *passWord;
 } connectPayload;
 
-void handleConnect(char *message, int offset, int sockfd);
-connectPayload readConnectPayload(char *message, int offset);
-void freeConnectPayload(connectPayload *payload);
-void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload);
-
 /***************************/
 /*                         */
 /*      CONNACK CODES      */
@@ -146,170 +231,7 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
 #define REFUSED_WRONG_USER_PASS 0b00000100
 #define REFUSED_NOT_AUTHORIZED 0b00000101
 
-
-
-//================================================================================================================
-
-
-
-/*******************************************/
-/*                                         */
-/*                 PUBLISH                 */
-/*                                         */
-/*******************************************/
-
-/***************************/
-/*                         */
-/* PUBLISH VARIABLE HEADER */
-/*                         */
-/***************************/
-
-typedef struct publishVariableHeader
-{
-    uint16_t size;
-    char *topic;
-    uint16_t identifier;
-} publishVariableHeader;
-
-/***************************/
-/*                         */
-/*     PUBLISH PAYLOAD     */
-/*                         */
-/***************************/
-
-typedef struct publishPayload
-{
-    uint16_t size;
-    char *data;
-} publishPayload;
-
-void handlePublish(char *message, int offset, int sockfd);
-void sendPuback(int sockfd, uint16_t id);
-
-
-
-//================================================================================================================
-
-
-
-/*******************************************/
-/*                                         */
-/*                SUBSCRIBE                */
-/*                                         */
-/*******************************************/
-
-/***************************/
-/*                         */
-/*SUBSCRIBE VARIABLE HEADER*/
-/*                         */
-/***************************/
-
-typedef struct subscribeVariableHeader
-{
-    uint16_t identifier;
-}subscribeVariableHeader;
-
-/***************************/
-/*                         */
-/*    SUBSCRIBE PAYLOAD    */
-/*                         */
-/***************************/
-
-typedef struct subscribePayload
-{
-    uint16_t size;
-    char *topic;
-    uint8_t qos;
-} subscribePayload;
-
-void handleSubscribe(char *message, int offset, int sockfd);
-void freeSubscribe(subscribePayload *sp, int amount);
-void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount);
-
-
-
-//================================================================================================================
-
-
-
-uint32_t remainingOffset(uint32_t value)
-{
-    if (value <= 0xFF) {
-        return 1;
-    } else if (value <= 0xFFFF) {
-        return 2;
-    } else if (value <= 0xFFFFFF) {
-        return 3;
-    } else {
-        return 4;
-    }
-}
-
-uint32_t decodeRemainingLength(const char* buffer) {
-    uint32_t value = 0;
-    uint32_t multiplier = 1;
-    size_t index = 0;
-
-    do {
-        uint8_t encodedByte = buffer[index++];
-        value += (encodedByte & 127) * multiplier;
-
-        multiplier *= 128;
-        if (multiplier > 128*128*128) {
-            fprintf(stderr, "remaining length malformado en el paquete MQTT\n");
-            return 0;
-        }
-    } while ((buffer[index-1] & 128) != 0);
-
-    return value;
-}
-
-// macro for the utf handling of inputs
-#define UTF_HANDLE(name, field, sizeField, message, offset)        \
-    memcpy(&(name.sizeField), message + offset, 2);                \
-    name.sizeField = ntohs(name.sizeField);                     \
-                                                                \
-    offset += 2;                                                \
-                                                                \
-    if (name.sizeField != 0)                                    \
-    {                                                           \
-        do                                                      \
-        {                                                       \
-            name.field = (char *)malloc(name.sizeField + 1);    \
-        } while (name.field == NULL);                           \
-                                                                \
-        memcpy(name.field, message + offset, name.sizeField);      \
-                                                                \
-        name.field[name.sizeField] = '\0';                      \
-                                                                \
-        offset += name.sizeField;                               \
-    }
-
-//================================================================================================================
-
-/*******************************************/
-/*                                         */
-/*               FIXED HEADER              */
-/*                                         */
-/*******************************************/
-
-fixedHeader handleFixedHeader(char *message, int sockfd)
-{
-    fixedHeader header;
-
-    memcpy(&header.messageType, message, 1);
-    
-    header.remainingLenght = decodeRemainingLength(message + 1);
-    return header;
-}
-
-//================================================================================================================
-
-/*******************************************/
-/*                                         */
-/*                 CONNECT                 */
-/*                                         */
-/*******************************************/
+// ---------------------------------------
 
 connectVariableHeader readConnectVariableHeader(char *message, int offset)
 {
@@ -330,6 +252,83 @@ connectVariableHeader readConnectVariableHeader(char *message, int offset)
 
     return variable;
 }
+
+void freeConnectPayload(connectPayload *payload)
+{
+    if (payload->clientIDSize != 0)
+        free(payload->clientID);
+    if (payload->willTopicSize != 0)
+        free(payload->willTopic);
+    if (payload->willMessageSize != 0)
+        free(payload->willMessage);
+    if (payload->userNameSize != 0)
+        free(payload->userName);
+    if (payload->passWordSize != 0)
+        free(payload->passWord);
+}
+
+connectPayload readConnectPayload(char *message, int offset)
+{
+    connectPayload payload;
+
+    //========client id size========
+
+    UTF_HANDLE(payload, clientID, clientIDSize, message, offset);
+
+    //========will topic size========
+
+    UTF_HANDLE(payload, willTopic, willTopicSize, message, offset);
+
+    //========will message size========
+
+    UTF_HANDLE(payload, willMessage, willMessageSize, message, offset);
+
+    //========name size========
+
+    UTF_HANDLE(payload, userName, userNameSize, message, offset);
+
+    //========password size========
+
+    UTF_HANDLE(payload, passWord, passWordSize, message, offset);
+
+    return payload;
+}
+
+void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload)
+{
+    char connackMessage[4];
+
+    connackMessage[0] = CONNACK;
+
+    // remaining lenght
+    connackMessage[1] = 0x02;
+
+    // sesion present
+    connackMessage[2] = 0x00;
+
+    // state
+    if(variable.version != 0x05){
+        connackMessage[3] = REFUSED_VERSION;
+    }
+    else if((payload.clientIDSize == 0) || (payload.clientIDSize > 23)){
+        connackMessage[3] = REFUSED_IDENTIFIER;
+    }
+    else if(DBverifySession(payload.userName, payload.passWord) != 1){
+        connackMessage[3] = REFUSED_WRONG_USER_PASS;
+    }
+    else{
+        connackMessage[3] = ACCEPTED;
+    }
+    
+
+    int result = send(sockfd, connackMessage, 4, 0);
+    
+    if (result == -1) {
+        perror("Sending connack failed\n");
+    }
+}
+
+// ---------------------------------------
 
 void handleConnect(char *message, int offset, int sockfd)
 {
@@ -407,82 +406,11 @@ void handleConnect(char *message, int offset, int sockfd)
     freeConnectPayload(&payload);
 }
 
-connectPayload readConnectPayload(char *message, int offset)
-{
-    connectPayload payload;
 
-    //========client id size========
-
-    UTF_HANDLE(payload, clientID, clientIDSize, message, offset);
-
-    //========will topic size========
-
-    UTF_HANDLE(payload, willTopic, willTopicSize, message, offset);
-
-    //========will message size========
-
-    UTF_HANDLE(payload, willMessage, willMessageSize, message, offset);
-
-    //========name size========
-
-    UTF_HANDLE(payload, userName, userNameSize, message, offset);
-
-    //========password size========
-
-    UTF_HANDLE(payload, passWord, passWordSize, message, offset);
-
-    return payload;
-}
-
-void freeConnectPayload(connectPayload *payload)
-{
-    if (payload->clientIDSize != 0)
-        free(payload->clientID);
-    if (payload->willTopicSize != 0)
-        free(payload->willTopic);
-    if (payload->willMessageSize != 0)
-        free(payload->willMessage);
-    if (payload->userNameSize != 0)
-        free(payload->userName);
-    if (payload->passWordSize != 0)
-        free(payload->passWord);
-}
-
-void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payload)
-{
-    char connackMessage[4];
-
-    connackMessage[0] = CONNACK;
-
-    // remaining lenght
-    connackMessage[1] = 0x02;
-
-    // sesion present
-    connackMessage[2] = 0x00;
-
-    // state
-    if(variable.version != 0x05){
-        connackMessage[3] = REFUSED_VERSION;
-    }
-    else if((payload.clientIDSize == 0) || (payload.clientIDSize > 23)){
-        connackMessage[3] = REFUSED_IDENTIFIER;
-    }
-    else if(DBverifySession(payload.userName, payload.passWord) != 1){
-        connackMessage[3] = REFUSED_WRONG_USER_PASS;
-    }
-    else{
-        connackMessage[3] = ACCEPTED;
-    }
-    
-
-    int result = send(sockfd, connackMessage, 4, 0);
-    
-    if (result == -1) {
-        perror("Sending connack failed\n");
-    }
-}
 
 //================================================================================================================
+
+
 
 /*******************************************/
 /*                                         */
@@ -490,10 +418,35 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
 /*                                         */
 /*******************************************/
 
-void handlePublish(char *message, int offset, int sockfd)
-{
-    // publish variable header
+/***************************/
+/*                         */
+/* PUBLISH VARIABLE HEADER */
+/*                         */
+/***************************/
 
+typedef struct publishVariableHeader
+{
+    uint16_t size;
+    char *topic;
+    uint16_t identifier;
+} publishVariableHeader;
+
+/***************************/
+/*                         */
+/*     PUBLISH PAYLOAD     */
+/*                         */
+/***************************/
+
+typedef struct publishPayload
+{
+    uint16_t size;
+    char *data;
+} publishPayload;
+
+// ---------------------------------------
+
+publishVariableHeader readPublishVariableHeader(char *message, int offset)
+{
     publishVariableHeader variable;
 
     UTF_HANDLE(variable, topic, size, message, offset);
@@ -501,44 +454,16 @@ void handlePublish(char *message, int offset, int sockfd)
     memcpy(&variable.identifier, message + offset, 2);
     variable.identifier = ntohs(variable.identifier);
 
-    offset += 2;
+    return variable;
+}
 
-    // publish payload
-
+publishPayload readPublishPayload(char *message, int offset)
+{
     publishPayload payload;
 
     UTF_HANDLE(payload, data, size, message, offset);
 
-    // printing information
-
-    if(variable.size !=0)
-    {
-        printf("publish topic size: %d\n", variable.size);
-        printf("publish topic: %s\n", variable.topic);
-    }
-    if (variable.identifier != 0){
-        printf("publish identifier: %d\n", variable.identifier);
-    }
-    if(payload.size !=0)
-    {
-        printf("publish data size: %d\n", payload.size);
-        printf("publish data: %s\n", payload.data);
-    }
-
-    int res = DBupdateOrCreate("dbTopics.csv", variable.topic, payload.data);
-    if (res != 0){
-
-        printf("Publicado correctamente\n");
-    }
-    else
-    {
-        printf("No se pudo publicar\n");
-    }
-
-    sendPuback(sockfd, variable.identifier);
-
-    free(variable.topic);
-    free(payload.data);
+    return payload;
 }
 
 void sendPuback(int sockfd, uint16_t id)
@@ -556,11 +481,59 @@ void sendPuback(int sockfd, uint16_t id)
     int result = send(sockfd, pubackMessage, 4, 0);
     
     if (result == -1) {
-        perror("Sending connack failed\n");
+        perror("Sending puback failed\n");
     }
 }
 
+// ---------------------------------------
+
+void handlePublish(char *message, int offset, int sockfd)
+{
+    
+    publishVariableHeader variable = readPublishVariableHeader(message, offset);
+    offset += 2 + variable.size + 2;
+
+    publishPayload payload = readPublishPayload(message, offset);
+
+    // printing received information
+    if(variable.size !=0)
+    {
+        printf("publish topic size: %d\n", variable.size);
+        printf("publish topic: %s\n", variable.topic);
+    }
+    if (variable.identifier != 0){
+        printf("publish identifier: %d\n", variable.identifier);
+    }
+    if(payload.size !=0)
+    {
+        printf("publish data size: %d\n", payload.size);
+        printf("publish data: %s\n", payload.data);
+    }
+
+    // creating or updating the topic and its data in the database
+    int res = DBupdateOrCreate("dbTopics.csv", variable.topic, payload.data);
+    if (res != 0)
+    {
+        printf("Publicado correctamente\n");
+    }
+    else
+    {
+        printf("No se pudo publicar\n");
+    }
+
+    // sending the puback
+    sendPuback(sockfd, variable.identifier);
+
+    // there are so few utf-8 arguments in both that it was better to do the memory freeing here
+    free(variable.topic);
+    free(payload.data);
+}
+
+
+
 //================================================================================================================
+
+
 
 /*******************************************/
 /*                                         */
@@ -568,80 +541,120 @@ void sendPuback(int sockfd, uint16_t id)
 /*                                         */
 /*******************************************/
 
-void handleSubscribe(char *message, int offset, int sockfd)
+/***************************/
+/*                         */
+/*SUBSCRIBE VARIABLE HEADER*/
+/*                         */
+/***************************/
+
+typedef struct subscribeVariableHeader
+{
+    uint16_t identifier;
+}subscribeVariableHeader;
+
+/***************************/
+/*                         */
+/*    SUBSCRIBE PAYLOAD    */
+/*                         */
+/***************************/
+
+typedef struct subscribePayload
+{
+    uint16_t size;
+    char *topic;
+    uint8_t qos;
+} subscribePayload;
+
+// ---------------------------------------
+
+subscribeVariableHeader readSubscribeVariableHeader(char *message, int offset)
 {
     subscribeVariableHeader variable;
 
     memcpy(&variable.identifier, message + offset, 2);
     variable.identifier = ntohs(variable.identifier);
 
+    return variable;
+}
+
+void freeSubscribePayload(subscribePayload *payload, int amount)
+{
+    for (int i = 0; i < amount; i++)
+    {
+        if (payload[amount].topic != NULL)
+            free(payload[amount].topic);
+    }
+    
+}
+
+void sendSuback(int sockfd, uint16_t id, subscribePayload *payload, int amount)
+{
+    int offset = 2;
+
+    char subackMessage[2 + amount];
+
+    subackMessage[0] = SUBACK;
+
+    // remaining lenght
+    subackMessage[1] = amount;
+
+    // identifier
+    id = ntohs(id);
+    memcpy(subackMessage + 2, &id, 2);
+
+    for (int i = 0; i < amount; i++)
+    {
+        memcpy(subackMessage + offset, &payload->qos, 1);
+        offset++;
+    }
+
+    int result = send(sockfd, subackMessage, amount + 3, 0);
+    
+    if (result == -1) {
+        perror("Sending SUBACK failed\n");
+    }   
+}
+
+// ---------------------------------------
+
+void handleSubscribe(char *message, int offset, int sockfd)
+{
+    subscribeVariableHeader variable = readSubscribeVariableHeader(message, offset);
     offset += 2;
 
     subscribePayload payload[200];
-    int amount_sub = 0;
+    int amount = 0;
 
-    while(((message[offset] != 0) || (message[offset + 1] != 0)) && amount_sub < 200)
+    while(((message[offset] != 0) || (message[offset + 1] != 0)) && amount < 200)
     {
-        UTF_HANDLE(payload[amount_sub], topic, size, message, offset);
+        UTF_HANDLE(payload[amount], topic, size, message, offset);
 
-        memcpy(&payload[amount_sub].qos, message + offset, 1);
+        memcpy(&payload[amount].qos, message + offset, 1);
 
         offset += 1;
 
-        amount_sub += 1;
+        amount += 1;
     }
 
     printf("subscribe id: %d\n", variable.identifier);
 
-    for (int i = 0; i < amount_sub; i++)
+    for (int i = 0; i < amount; i++)
     {
         printf("subscribe topic size: %d\n", payload[i].size);
         printf("subscribe topic: %s\n", payload[i].topic);
         printf("subscribe topic qos: %d\n", payload[i].qos);
     }
 
-    freeSubscribe(payload, amount_sub);
+    sendSuback(sockfd, variable.identifier, payload, amount);
+
+    freeSubscribePayload(payload, amount);
 }
 
-void freeSubscribe(subscribePayload *sp, int amount)
-{
-    for (int i = 0; i < amount; i++)
-    {
-        if (sp[amount].topic != NULL)
-            free(sp[amount].topic);
-    }
-    
-}
 
-void sendSuback(int sockfd, uint16_t id, subscribePayload *sp, int amount)
-{
-    int offset = 2;
-
-    char pubackMessage[2 + amount];
-
-    pubackMessage[0] = SUBACK;
-
-    // remaining lenght
-    pubackMessage[1] = amount;
-
-    // identifier
-    id = ntohs(id);
-    memcpy(pubackMessage + 2, &id, 2);
-
-    for (int i = 0; i < amount; i++)
-    {
-        memcpy(pubackMessage + offset, &sp->qos, 1);
-        offset++;
-    }
-
-    int result = send(sockfd, pubackMessage, amount + 3, 0);
-    
-    if (result == -1) {
-        perror("Sending connack failed\n");
-    }   
-}
 
 //================================================================================================================
+
+
 
 /*******************************************/
 /*                                         */
@@ -719,6 +732,17 @@ int printSocketInfo(int sockfd, int clientfd, struct sockaddr_storage *their_add
     printf("####### ip conection from %s with port %s #######\n\n", hostName, serviceName);
 }
 
+
+
+//================================================================================================================
+
+
+
+/*******************************************/
+/*                                         */
+/*                  MAIN                   */
+/*                                         */
+/*******************************************/
 
 int handleMessage(char *message, int sockfd){
 
@@ -819,11 +843,14 @@ int handleRecv(void *message)
     return 0;
 }
 
+// ---------------------------------------
+
 char quit[5];
 int stop = 1;
 
 int handleServer(void *message)
 {
+
     while (1)
     {
         printf("Enter 'quit' to exit: ");
