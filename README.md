@@ -58,7 +58,7 @@ Respecto al planteamiento lógico, se tiene en cuenta entonces diferentes diagra
 
 ## Diagrama de despliegue:
 
-![Diagrama de despliegue](https://github.com/QuitoTactico/MQTT/assets/78938901/5926a5fe-9a54-4ee0-8e98-b2fec27eb1f3)
+![Diagrama de despliegue](https://github.com/QuitoTactico/MQTT/assets/78938901/ca88ecdd-9075-4006-b542-775a8a67bcc8)
 
 ## Diagrama de componentes:
 
