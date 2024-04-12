@@ -318,6 +318,12 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
     }
     else{
         connackMessage[3] = ACCEPTED;
+
+        // creating or updating the session in the database);
+        char sockfd_str[20]; // Asume que un int no superará los 20 caracteres
+        sprintf(sockfd_str, "%d", sockfd);
+        DBupdateOrCreate("dbSockets.csv", payload.clientID, sockfd_str);
+        printf("Session accepted and saved in database\n");
     }
     
 
@@ -485,6 +491,89 @@ void sendPuback(int sockfd, uint16_t id)
     }
 }
 
+void sendPublishToUser(char* user, int packetID, char* topic, char* data){
+    int sockfd = DBgetSocketByUsername(user);
+    if (sockfd != -1)
+    {
+        char publishMessage[1000];
+        int offset = 0;
+
+        publishVariableHeader variable;
+        variable.size = strlen(topic);
+        variable.topic = topic;
+        variable.identifier = packetID;
+
+        publishPayload payload;
+        payload.size = strlen(data);
+        payload.data = data;
+
+        publishMessage[offset] = PUBLISH;
+        offset++;
+
+        // remaining length
+        uint32_t remainingLength = 2 + variable.size + 2 + payload.size;
+        int remainingLengthSize = 0;
+        do {
+            uint8_t digit = remainingLength % 128;
+            remainingLength /= 128;
+            if (remainingLength > 0) {
+                digit |= 128;
+            }
+            publishMessage[offset++] = digit;
+            remainingLengthSize++;
+        } while (remainingLength > 0 && remainingLengthSize < 4);
+
+        // topic size
+        uint16_t topicSize = htons(variable.size);
+        memcpy(publishMessage + offset, &topicSize, 2);
+        offset += 2;
+
+        // topic
+        memcpy(publishMessage + offset, variable.topic, variable.size);
+        offset += variable.size;
+
+        // identifier
+        uint16_t identifier = htons(variable.identifier);
+        memcpy(publishMessage + offset, &identifier, 2);
+        offset += 2;
+
+        // data
+        memcpy(publishMessage + offset, payload.data, payload.size);
+        offset += payload.size;
+
+        int result = send(sockfd, publishMessage, offset, 0);
+        
+        if (result == -1) {
+            perror("Sending publish failed\n");
+        }
+    }
+    else
+    {
+        printf("User not connected\n");
+    }
+}
+
+void sendPublishToSubscriptors(int packetID, char* topic, char* data){
+    char **users;
+    int usersCount = DBgetSubscriptors(topic, &users);
+    if (usersCount != 0)
+    {
+        printf("Notifying \n");
+        for (int i = 0; i < usersCount; i++)
+        {
+            printf("%s ", users[i]);
+        }
+        for (int i = 0; i < usersCount; i++)
+        {
+            sendPublishToUser(users[i], packetID, topic, data);
+        }
+    }
+    else
+    {
+        printf("No users to notify\n");
+    }
+}
+
 // ---------------------------------------
 
 void handlePublish(char *message, int offset, int sockfd)
@@ -523,6 +612,9 @@ void handlePublish(char *message, int offset, int sockfd)
 
     // sending the puback
     sendPuback(sockfd, variable.identifier);
+
+    // notifying the subscriptors
+    sendPublishToSubscriptors(variable.identifier, variable.topic, payload.data);
 
     // there are so few utf-8 arguments in both that it was better to do the memory freeing here
     free(variable.topic);
@@ -647,6 +739,8 @@ void handleSubscribe(char *message, int offset, int sockfd)
         DBupdateOrCreate("dbSubscribes.csv", variable.identifier, payload[i].topic);
     }
 
+    clientID = (sockfd);
+    DBupdateOrCreate("dbSubscribes.csv", );
     sendSuback(sockfd, variable.identifier, payload, amount);
 
     freeSubscribePayload(payload, amount);
