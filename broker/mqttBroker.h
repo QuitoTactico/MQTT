@@ -67,15 +67,17 @@ int DBupdateOrCreateSession(const char* id, const char* username, const char* pa
 
 // Subscriptions
 
-int DBgetSubscribes(char* username, char*** topics);
+int DBgetSubscribes(char* userID, char*** topics);
 
-int DBisUserInList(char* username, char** users, int usersCount);
+int DBisUserInList(char* userID, char** users, int usersCount);
 
 int DBgetSubscriptors(char* topic, char*** users);
 
 // Sockets
 
-int DBgetSocketByUsername(const char* username);
+int DBgetSocketByUserID(const char* userID);
+
+int DBgetUserIDbySocket(int sockfd, char* userID);
 
 // Log
 

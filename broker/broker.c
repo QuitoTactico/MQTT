@@ -5,10 +5,10 @@ int main(int argc, char *argv[])
     char *logDir = NULL;
     // Comprueba si el usuario ha proporcionado el argumento logDir
     if (argc == 2){
-        *logDir = argv[1];
+        logDir = argv[1];
     }
     else if(argc == 4){
-        *logDir = argv[3];
+        logDir = argv[3];
     }
     else
     {

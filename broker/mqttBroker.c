@@ -113,6 +113,7 @@ uint32_t remainingOffset(uint32_t value)
     }
 }
 
+// modifica el string ip con la dirección IP del socket
 void getSocketIP(int sockfd, char* ip) {
     struct sockaddr_in addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
@@ -124,6 +125,26 @@ void getSocketIP(int sockfd, char* ip) {
     }
 
     inet_ntop(AF_INET, &(addr.sin_addr), ip, INET_ADDRSTRLEN);
+}
+
+// retorna 1 si el socket es válido, 0 si no lo es
+int isValidSocket(int sockfd) {
+    int error = 0;
+    socklen_t len = sizeof (error);
+    int retval = getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len);
+
+    if (retval != 0) {
+        /* Hubo un problema al obtener la opción del socket. Puede que no sea un socket válido. */
+        return 0;
+    }
+
+    if (error != 0) {
+        /* El socket tiene un error pendiente. */
+        return 0;
+    }
+
+    /* Si llegamos aquí, el socket parece ser válido. */
+    return 1;
 }
 
 // macro for the utf handling of inputs
@@ -320,7 +341,7 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
         connackMessage[3] = ACCEPTED;
 
         // creating or updating the session in the database);
-        char sockfd_str[20]; // Asume que un int no superará los 20 caracteres
+        char sockfd_str[20]; //supongamos que un int no va a ser más grande que 20 caracteres/cifras
         sprintf(sockfd_str, "%d", sockfd);
         DBupdateOrCreate("dbSockets.csv", payload.clientID, sockfd_str);
         printf("Session accepted and saved in database\n");
@@ -491,9 +512,11 @@ void sendPuback(int sockfd, uint16_t id)
     }
 }
 
-void sendPublishToUser(char* user, int packetID, char* topic, char* data){
-    int sockfd = DBgetSocketByUsername(user);
-    if (sockfd != -1)
+void sendPublishToUser(char* userID, int packetID, char* topic, char* data){
+    int sockfd = DBgetSocketByUserID(userID);
+    int valid = 0;
+    valid = isValidSocket(sockfd);
+    if (valid == 1)
     {
         char publishMessage[1000];
         int offset = 0;
@@ -544,12 +567,15 @@ void sendPublishToUser(char* user, int packetID, char* topic, char* data){
         int result = send(sockfd, publishMessage, offset, 0);
         
         if (result == -1) {
-            perror("Sending publish failed\n");
+            perror("Sending publish failed.\n");
+        }else{
+            printf("Sent.\n");
+        
         }
     }
     else
     {
-        printf("User not connected\n");
+        printf("Not valid socket or client disconnected.\n");
     }
 }
 
@@ -558,13 +584,9 @@ void sendPublishToSubscriptors(int packetID, char* topic, char* data){
     int usersCount = DBgetSubscriptors(topic, &users);
     if (usersCount != 0)
     {
-        printf("Notifying \n");
         for (int i = 0; i < usersCount; i++)
         {
-            printf("%s ", users[i]);
-        }
-        for (int i = 0; i < usersCount; i++)
-        {
+            printf("Notifying %s ... ", users[i]);
             sendPublishToUser(users[i], packetID, topic, data);
         }
     }
@@ -736,11 +758,16 @@ void handleSubscribe(char *message, int offset, int sockfd)
         printf("subscribe topic: %s\n", payload[i].topic);
         printf("subscribe topic qos: %d\n", payload[i].qos);
 
-        DBupdateOrCreate("dbSubscribes.csv", variable.identifier, payload[i].topic);
+        //DBupdateOrCreate("dbSubscribes.csv", variable.identifier, payload[i].topic);
     }
 
-    clientID = (sockfd);
-    DBupdateOrCreate("dbSubscribes.csv", );
+    char clientID [23];
+    DBgetUserIDbySocket(sockfd, clientID);
+    for (int i = 0; i < amount; i++)
+    {
+        DBsaveStringsToFile("dbSubscribes.csv", clientID, payload[i].topic);
+    }
+
     sendSuback(sockfd, variable.identifier, payload, amount);
 
     freeSubscribePayload(payload, amount);
@@ -891,7 +918,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("###############################\n\n");
 
         handleConnect(message, offset, sockfd);
-        DBsaveLog(logDir, clientIP, 'CONNECT', message);
+        DBsaveLog(logDir, clientIP, "CONNECT", message);
         break;
     case PUBLISH:
         printf("###############################\n");
@@ -899,7 +926,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("###############################\n\n");
 
         handlePublish(message, offset, sockfd);
-        DBsaveLog(logDir, clientIP, 'PUBLISH', message);
+        DBsaveLog(logDir, clientIP, "PUBLISH", message);
         break;
     case SUBSCRIBE:
         printf("################################\n");
@@ -907,7 +934,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("################################\n\n");
 
         handleSubscribe(message, offset, sockfd);
-        DBsaveLog(logDir, clientIP, 'SUBSCRIBE', message);
+        DBsaveLog(logDir, clientIP, "SUBSCRIBE", message);
         break;
     default:
         printf("############################\n");
