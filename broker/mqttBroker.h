@@ -52,11 +52,15 @@ int close_server();
 
 int DBsaveStringsToFile(const char* filename, const char* string1, const char* string2);
 
-int DBverifySession(const char* username, const char* password);
-
 int DBcheckExistence(const char* filename, const char* string1);
 
 int DBupdateOrCreate(const char* filename, const char* string1, const char* string2);
+
+// Sessions
+
+int DBverifySession(const char* id, const char* username, const char* password);
+
+int DBupdateOrCreateSession(const char* id, const char* username, const char* password);
 
 // Subscriptions
 

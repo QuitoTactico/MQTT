@@ -16,37 +16,6 @@ int DBsaveStringsToFile(const char* filename, const char* string1, const char* s
     return 1;
 }
 
-// retorna 1 si la sesión es válida, 0 si no existe el archivo o no se pudo abrir, -1 si el username y la contraseña no coinciden
-int DBverifySession(const char* username, const char* password) {
-    // Abre el archivo CSV
-    const char* filename = "dbSessions.csv";
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("el archivo no existe");
-        return 0;
-    }
-
-    // Lee cada línea del archivo
-    char line[200];
-    while (fgets(line, sizeof(line), file) != NULL) {
-        line[strcspn(line, "\n")] = 0;  // Elimina el salto de línea al final
-
-        // Divide la línea en nombre de usuario y contraseña
-        char* line_username = strtok(line, "|");
-        char* line_password = strtok(NULL, "|");
-
-        // Comprueba si el nombre de usuario y la contraseña coinciden
-        if (line_username != NULL && line_password != NULL &&
-            strcmp(line_username, username) == 0 && strcmp(line_password, password) == 0) {
-            fclose(file);
-            return 1;
-        }
-    }
-
-    fclose(file);
-    return -1;
-}
-
 // para verificar si un nombre de usuario o un tópico existe en su respectivo archivo
 int DBcheckExistence(const char* filename, const char* string1) {
     // Abre el archivo CSV
@@ -116,6 +85,91 @@ int DBupdateOrCreate(const char* filename, const char* string1, const char* stri
     //si no existe, agrega una nueva línea
     if (userExists == -1) {
         fprintf(temp, "%s|%s\n", string1, string2);
+    }
+
+    //cierra los archivos y renombra el archivo temporal
+    fclose(file);
+    fclose(temp);
+    rename("temp.csv", filename);
+
+    return userExists; //retornará 1 si ya existía y -1 si no
+}
+
+// ---------------------------------- SESSIONS -----------------------------------------
+
+
+// retorna 1 si la sesión es válida, 0 si no existe el archivo o no se pudo abrir, -1 si el username y la contraseña no coinciden
+int DBverifySession(const char* identifier, const char* username, const char* password) {
+    // Abre el archivo CSV
+    const char* filename = "dbSessions.csv";
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("el archivo no existe");
+        return 0;
+    }
+
+    // Lee cada línea del archivo
+    char line[200];
+    while (fgets(line, sizeof(line), file) != NULL) {
+        line[strcspn(line, "\n")] = 0;  // Elimina el salto de línea al final
+
+        // Divide la línea en identificador, nombre de usuario y contraseña
+        char* line_identifier = strtok(line, "|");
+        char* line_username = strtok(NULL, "|");
+        char* line_password = strtok(NULL, "|");
+
+        // Comprueba si el identificador, nombre de usuario y contraseña coinciden
+        if (line_identifier != NULL && line_username != NULL && line_password != NULL &&
+            strcmp(line_identifier, identifier) == 0 && strcmp(line_username, username) == 0 && strcmp(line_password, password) == 0) {
+            fclose(file);
+            return 1;
+        }
+    }
+
+    fclose(file);
+    return -1;
+}
+
+int DBupdateOrCreateSession(const char* id, const char* username, const char* password) {
+    const char* filename = "dbSessions.csv";
+    //abrimos el archivo CSV en modo de lectura
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("el archivo no existe");
+        return 0;
+    }
+
+    //creamos un archivo temporal para guardar las líneas actualizadas
+    FILE* temp = fopen("temp.csv", "w");
+    if (temp == NULL) {
+        perror("no se pudo crear el archivo temporal");
+        fclose(file);
+        return 0;
+    }
+
+    //leemos cada línea
+    char line[200];
+    int userExists = -1;
+    while (fgets(line, sizeof(line), file) != NULL) {
+        line[strcspn(line, "\n")] = 0;  // Elimina el salto de línea al final
+
+        //divide la línea entre los campos
+        char* line_field1 = strtok(line, "|");
+        char* line_field2 = strtok(NULL, "|");
+        char* line_field3 = strtok(NULL, "|");
+
+        //comprueba si el nombre de usuario coincide
+        if (line_field1 != NULL && strcmp(line_field1, id) == 0) {
+            userExists = 1;
+            fprintf(temp, "%s|%s|%s\n", id, username, password);  // Escribe la línea actualizada en el archivo temporal
+        } else {
+            fprintf(temp, "%s|%s|%s\n", line_field1, line_field2, line_field3);  // Escribe la línea original en el archivo temporal
+        }
+    }
+
+    //si no existe, agrega una nueva línea
+    if (userExists == -1) {
+        fprintf(temp, "%s|%s|%s\n", id, username, password);
     }
 
     //cierra los archivos y renombra el archivo temporal
@@ -323,7 +377,11 @@ int DBtest() {
                     break;
 
                 case 2:
-                    result = DBverifySession(string1, string2);
+                    char id[100];
+                    printf("Introduce ID: ");
+                    fgets(id, sizeof(id), stdin);
+                    id[strcspn(id, "\n")] = 0;  // Elimina el salto de línea al final
+                    result = DBverifySession(id, string1, string2);
                     if (result == 1) {
                         printf("Sesión verificada\n");
                     } else {
