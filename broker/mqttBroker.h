@@ -14,7 +14,10 @@
 #define MY_IP ""
 #define QUEUESIZE 10
 
-
+typedef struct {
+    int sockfd;
+    char *logDir;
+} ThreadArgs;
 
 //================================================================================================================
 

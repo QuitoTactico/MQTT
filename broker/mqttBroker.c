@@ -779,12 +779,15 @@ int handleServer(void *message)
 
 // ---------------------------------------
 
-int handleMessage(char *message, int sockfd){
+int handleMessage(char *message, int sockfd, char* logDir){
 
     fixedHeader header = handleFixedHeader(message, sockfd);
 
     int offset = 1 + remainingOffset(header.remainingLenght);
     uint8_t qos = (header.messageType&QOS) >> 1;
+
+    char clientIP[INET_ADDRSTRLEN];
+    getSocketIP(sockfd, clientIP);
 
     switch (header.messageType & FIXED)
     {
@@ -794,6 +797,7 @@ int handleMessage(char *message, int sockfd){
         printf("###############################\n\n");
 
         handleConnect(message, offset, sockfd);
+        DBsaveLog(logDir, clientIP, 'CONNECT', message);
         break;
     case PUBLISH:
         printf("###############################\n");
@@ -801,6 +805,7 @@ int handleMessage(char *message, int sockfd){
         printf("###############################\n\n");
 
         handlePublish(message, offset, sockfd);
+        DBsaveLog(logDir, clientIP, 'PUBLISH', message);
         break;
     case SUBSCRIBE:
         printf("################################\n");
@@ -808,6 +813,7 @@ int handleMessage(char *message, int sockfd){
         printf("################################\n\n");
 
         handleSubscribe(message, offset, sockfd);
+        DBsaveLog(logDir, clientIP, 'SUBSCRIBE', message);
         break;
     default:
         printf("############################\n");
@@ -826,9 +832,15 @@ int handleMessage(char *message, int sockfd){
 
 // This is like the THIRD MAIN function that is called in the broker.c to 
 // handle the incoming messages. It first reads the fixed header to categorize
-int handleRecv(void *message)
+int handleRecv(void *arg)
 {
-    int brokersockfd = *(int *)message;
+    //int brokersockfd = *(int *)message;
+
+    // receiving the arguments via struct
+    ThreadArgs *args = (ThreadArgs *)arg;
+    int brokersockfd = args->sockfd;
+    char *logDir = args->logDir;
+
 
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
@@ -866,7 +878,7 @@ int handleRecv(void *message)
         if (buf[0] == 'q')
             break;
 
-        handleMessage(buf, clientsockfd);
+        handleMessage(buf, clientsockfd, logDir);
 
         memset(buf, 0, len);
     }
