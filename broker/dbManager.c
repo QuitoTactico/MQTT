@@ -212,6 +212,7 @@ int DBisUserInList(char* username, char** users, int usersCount) {
     return 0;
 }
 
+// envíale el tópico y un array vacío con los usuarios. Modificará el arreglo y te retornará cuántos consiguió.
 int DBgetSubscriptors(char* topic, char*** users) {
     FILE* file = fopen("dbSubscribes.csv", "r");
     int usersCount = 0;
@@ -224,21 +225,13 @@ int DBgetSubscriptors(char* topic, char*** users) {
         char* username = strdup(token);
         token = strtok(NULL, "|");
 
-        char* superTopic = strdup(topic);
-        char* slashPosition;
-        do {
-            if (strcmp(token, superTopic) == 0 && !DBisUserInList(username, *users, usersCount)) {
-                (usersCount)++;
-                *users = realloc(*users, (usersCount) * sizeof(char*));
-                (*users)[usersCount - 1] = username;
-                break;
-            }
-            slashPosition = strrchr(superTopic, '/');
-            if (slashPosition != NULL) {
-                *slashPosition = '\0'; // Truncate the superTopic at the last slash
-            }
-        } while (slashPosition != NULL);
-        free(superTopic);
+        if (strcmp(token, topic) == 0 && !DBisUserInList(username, *users, usersCount)) {
+            (usersCount)++;
+            *users = realloc(*users, (usersCount) * sizeof(char*));
+            (*users)[usersCount - 1] = username;
+        } else {
+            free(username);
+        }
     }
     fclose(file);
     return usersCount;
@@ -272,6 +265,8 @@ int DBgetSocketByUsername(const char* username) {
     fclose(file);
     return -1; // Retorna -1 si no se encontró el nombre de usuario
 }
+
+DBgetClientIDBySocket()
 
 // ---------------------------------- LOG  -----------------------------------------
 

@@ -720,15 +720,10 @@ void handlePublish(char *args)
 
     // printing information
 
-    if(variable.size !=0)
+    if((variable.size !=0) && (payload.size !=0))
     {
-        printf("publish topic size: %d\n", variable.size);
-        printf("publish topic: %s\n", variable.topic);
-    }
-    if(payload.size !=0)
-    {
-        printf("publish data size: %d\n", payload.size);
-        printf("publish data: %s\n", payload.data);
+        printf("--------------\ntopic %s updated\n", variable.topic);
+        printf("[%d] %s: %s\n", variable.identifier, variable.topic, payload.data);
     }
 
     free(variable.topic);
