@@ -23,17 +23,17 @@ El objetivo de este proyecto es realizar la implementación del protocolo MQTT (
     
     **Forma de Compilarse:**
     
-    gcc broker.c mqttBroker.c dbManager.c -o broker
+    gcc broker.c mqttBroker.c dbManager.c -o broker → Desde la carpeta MQTT/broker/
     
-    gcc client.c mqttClient.c -o cliente
+    gcc client.c mqttClient.c -o cliente → Desde la carpeta MQTT/client/
     
     **Comandos de Ejecución:**
     
     ./client </path/log.log> → Desde la carpeta MQTT/client/
-    ./client <ip> <port> </path/log.log>
+    ./client <ip> <port> </path/log.log> -> Forma alternativa
     
     ./broker </path/log.log> → Desde la carpeta MQTT/broker/
-    ./broker <ip> <port> </path/log.log>
+    ./broker <ip> <port> </path/log.log> -> Forma alternativa
     
     **Notas adicionales:**
     
