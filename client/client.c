@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
         int connectQos = createConnect(message);
 
-        brokerSockfd = connectSocket(broker_ip, broker_ip);
+        brokerSockfd = connectSocket(broker_ip, broker_port);
 
         send(brokerSockfd, &message, 500, 0);
 

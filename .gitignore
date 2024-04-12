@@ -4,5 +4,3 @@ st0255.pem
 /broker/dbManagerBeta.c
 /broker/dbManager
 /.vscode/
-*.csv
-*.log
