@@ -705,6 +705,8 @@ void DBsaveLog(char* dir, char* ip, char* request, char* args) {
     fclose(file);
 }
 
+mtx_t mutex;
+
 int handleRecv(void * arg){
     //int brokerSockfd = *(int*)sockfd;
 
@@ -722,6 +724,9 @@ int handleRecv(void * arg){
     while(1)
     {
         recv(brokerSockfd, buf, 500, 0);
+
+        mtx_lock(&mutex);
+
         printf("Received message\n");
 
         switch ((buf[0] & 0b11110000))
@@ -741,7 +746,9 @@ int handleRecv(void * arg){
         default:
             break;
         }
+        mtx_unlock(&mutex);
     }
+    return 0;
 }
 
 uint32_t remainingOffset(uint32_t value)
