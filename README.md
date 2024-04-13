@@ -104,3 +104,7 @@ https://www.youtube.com/watch?v=WmKAWOVnwjE
 https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.pdf
 
 https://www.geeksforgeeks.org/tcp-3-way-handshake-process/
+
+# ENLACE VIDEO EXPLICACION: 
+
+https://www.youtube.com/watch?v=-A2iWSWiI7g
