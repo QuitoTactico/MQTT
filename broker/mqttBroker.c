@@ -956,24 +956,24 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("####### user connecting #######\n");
         printf("###############################\n\n");
 
-        handleConnect(message, offset, sockfd);
         DBsaveLog(logDir, clientIP, "CONNECT", messageCopy);
+        handleConnect(message, offset, sockfd);
         break;
     case PUBLISH:
         printf("###############################\n");
         printf("####### user publishing #######\n");
         printf("###############################\n\n");
 
-        handlePublish(message, offset, sockfd);
         DBsaveLog(logDir, clientIP, "PUBLISH", messageCopy);
+        handlePublish(message, offset, sockfd);
         break;
     case SUBSCRIBE:
         printf("################################\n");
         printf("####### user subscribing #######\n");
         printf("################################\n\n");
 
-        handleSubscribe(message, offset, sockfd);
         DBsaveLog(logDir, clientIP, "SUBSCRIBE", messageCopy);
+        handleSubscribe(message, offset, sockfd);
         break;
     default:
         printf("############################\n");
@@ -986,9 +986,9 @@ int handleMessage(char *message, int sockfd, char* logDir){
             printf("%d", (header.messageType >> i) & 1);
         }
         printf("\n");
-        free(messageCopy);
         break;
     }
+    free(messageCopy);
 }
 
 // This is like the THIRD MAIN function that is called in the broker.c to 
