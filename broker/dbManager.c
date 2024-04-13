@@ -200,6 +200,7 @@ int DBgetSubscribes(char* userID, char*** topics) {
     FILE* file = fopen("dbSubscribes.csv", "r");
     int topicsCount = 0;
     char line[256];
+    *topics = malloc(0);
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = 0; // Elimina el salto de línea al final
 
@@ -232,6 +233,7 @@ int DBgetSubscriptors(char* topic, char*** users) {
     FILE* file = fopen("dbSubscribes.csv", "r");
     int usersCount = 0;
     char line[256];
+    *users = malloc(0); // Añade esta línea
     while (fgets(line, sizeof(line), file)) {
         line[strcspn(line, "\n")] = 0; // Elimina el salto de línea al final
 
