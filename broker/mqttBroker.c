@@ -966,7 +966,9 @@ int handleRecv(void *arg)
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
 
+    mutex_lock(&mutex);
     int clientsockfd = accept(brokersockfd, (struct sockaddr *)&their_addr, &addr_size);
+    mutex_unlock(&mutex);
 
     if (clientsockfd == -1)
     {
