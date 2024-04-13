@@ -62,6 +62,8 @@ Respecto al planteamiento lógico, se tiene en cuenta entonces diferentes diagra
 
 ## Diagrama de componentes:
 
+![Diagrama de componentes MQTT](https://github.com/QuitoTactico/MQTT/assets/78938901/3097d221-8f27-47c3-bc85-19d05cc54678)
+
 # Aspectos logrados y no logrados
 
 - Se pudieron completar los paquetes:
