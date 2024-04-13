@@ -493,7 +493,7 @@ publishPayload readPublishPayload(char *message, int offset)
     return payload;
 }
 
-void sendPuback(int sockfd, uint16_t id)
+void sendPuback(int sockfd, publishVariableHeader variable)
 {
     char pubackMessage[4];
 
@@ -502,7 +502,9 @@ void sendPuback(int sockfd, uint16_t id)
     // remaining lenght
     pubackMessage[1] = 0x02;
 
-    id = htons(id);
+    printf("id sent before: %d", variable.identifier);
+    uint16_t id = htons(variable.identifier);
+    printf("id sent after: %d", id);
     memcpy(pubackMessage + 2, &id, 2);
 
     int result = send(sockfd, pubackMessage, 4, 0);
@@ -515,6 +517,7 @@ void sendPuback(int sockfd, uint16_t id)
 void sendPublishToUser(char* userID, int packetID, char* topic, char* data){
     int sockfd = DBgetSocketByUserID(userID);
     int valid = 0;
+    printf("Sending to %s\n", userID);
     valid = isValidSocket(sockfd);
     if (valid == 1)
     {
@@ -586,6 +589,10 @@ void sendPublishToSubscriptors(int packetID, char* topic, char* data){
     {
         for (int i = 0; i < usersCount; i++)
         {
+            if (users[i] == NULL)
+            {
+                break;
+            }
             printf("Notifying %s ... ", users[i]);
             sendPublishToUser(users[i], packetID, topic, data);
         }
@@ -633,7 +640,7 @@ void handlePublish(char *message, int offset, int sockfd)
     }
 
     // sending the puback
-    sendPuback(sockfd, variable.identifier);
+    sendPuback(sockfd, variable);
 
     // notifying the subscriptors
     sendPublishToSubscriptors(variable.identifier, variable.topic, payload.data);
