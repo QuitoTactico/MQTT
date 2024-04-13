@@ -75,6 +75,8 @@ int DBgetSubscriptors(char* topic, char*** users);
 
 // Sockets
 
+int DBupdateOrCreateSocket(const char* userID, const char* socketfd);
+
 int DBgetSocketByUserID(const char* userID);
 
 int DBgetUserIDbySocket(int sockfd, char* userID);

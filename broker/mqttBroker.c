@@ -343,7 +343,8 @@ void sendConnack(int sockfd, connectVariableHeader variable, connectPayload payl
         // creating or updating the session in the database);
         char sockfd_str[20]; //supongamos que un int no va a ser más grande que 20 caracteres/cifras
         sprintf(sockfd_str, "%d", sockfd);
-        DBupdateOrCreate("dbSockets.csv", payload.clientID, sockfd_str);
+        //DBupdateOrCreate("dbSockets.csv", payload.clientID, sockfd_str);
+        DBupdateOrCreateSocket(payload.clientID, sockfd_str);
         printf("Session accepted and saved in database\n");
     }
     
@@ -589,12 +590,10 @@ void sendPublishToSubscriptors(int packetID, char* topic, char* data){
     {
         for (int i = 0; i < usersCount; i++)
         {
-            /*
             if (users[i] == NULL)
             {
                 break;
             }
-            */
             printf("Notifying %s ... ", users[i]);
             sendPublishToUser(users[i], packetID, topic, data);
         }
