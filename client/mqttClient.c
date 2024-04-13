@@ -530,6 +530,7 @@ void createSubscribe(char *message)
     counter = countertemp;
 }
 
+/*
 int handleSuback(char *suback)
 {
     uint16_t identifier;
@@ -548,6 +549,62 @@ int handleSuback(char *suback)
             printf("subscription not accepted");
         }
     }    
+}
+*/
+
+/*
+int handleSuback(char *suback, size_t subackSize)
+{
+    uint16_t identifier;
+    memcpy(&identifier, suback + 2, 2);
+    identifier = ntohs(identifier);
+
+    printf("Packet Identifier: %u\n", identifier);
+
+    size_t counter = subackSize - 4; // Restamos 4 porque los primeros 4 bytes del mensaje SUBACK no son códigos de retorno
+
+    for (size_t i = 0; i < counter; i++)
+    {
+        if ((suback[4 + i] & 0b10000000) == 0)
+        {
+            printf("Subscription %zu accepted\n", i + 1);
+        }
+        else
+        {
+            printf("Subscription %zu not accepted\n", i + 1);
+        }
+    }    
+
+    return 0;
+}
+*/
+
+int handleSuback(char *suback)
+{
+    // Calcular el tamaño del mensaje SUBACK
+    uint16_t mqttMessageSize = suback[1]; // Asume que la longitud remanente cabe en 1 byte para simplificar
+
+    uint16_t identifier;
+    memcpy(&identifier, suback + 2, 2);
+    identifier = ntohs(identifier);
+
+    printf("Packet Identifier: %u\n", identifier);
+
+    size_t counter = mqttMessageSize - 2; // Restamos 2 porque los primeros 2 bytes del mensaje SUBACK no son códigos de retorno
+
+    for (size_t i = 0; i < counter; i++)
+    {
+        if ((suback[4 + i] & 0b10000000) == 0)
+        {
+            printf("Subscription %zu accepted\n", i + 1);
+        }
+        else
+        {
+            printf("Subscription %zu not accepted\n", i + 1);
+        }
+    }    
+
+    return 0;
 }
 
 //================================================================================================================
@@ -665,6 +722,7 @@ int handleRecv(void * arg){
     while(1)
     {
         recv(brokerSockfd, buf, 500, 0);
+        printf("Received message\n");
 
         switch ((buf[0] & 0b11110000))
         {
