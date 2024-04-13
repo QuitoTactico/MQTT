@@ -449,7 +449,7 @@ void createPublish(char *message)
 int handlePuback(char *puback)
 {
     uint16_t id;
-    memcpy(puback + 2, &id, 2);
+    memcpy(&id, puback + 2, 2);
     id = ntohs(id);
 
     printf("PUBACK received with id: %d\n", id);
@@ -533,7 +533,7 @@ void createSubscribe(char *message)
 int handleSuback(char *suback)
 {
     uint16_t identifier;
-    memcpy(suback + 2, &identifier, 2);
+    memcpy(&identifier, suback + 2, 2);
     identifier = ntohs(identifier);
 
     //WHILE
@@ -669,16 +669,16 @@ int handleRecv(void * arg){
         switch ((buf[0] & 0b11110000))
         {
         case PUBACK:
-            handlePuback(buf);
             DBsaveLog(logDir, brokerIP, "PUBACK", buf);
+            handlePuback(buf);
             break;
         case SUBACK:
-            handleSuback(buf);
             DBsaveLog(logDir, brokerIP, "SUBACK", buf);
+            handleSuback(buf);
             break;
         case PUBLISH:
-            handlePublish(buf);
             DBsaveLog(logDir, brokerIP, "PUBLISH", buf);
+            handlePublish(buf);
             break;
         default:
             break;
