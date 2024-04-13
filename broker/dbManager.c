@@ -55,7 +55,7 @@ Retorna un int señalando si ya existía o no. 1 si ya existía y se actualizó,
 */
 int DBupdateOrCreate(const char* filename, const char* string1, const char* string2) {
     //abrimos el archivo CSV en modo de lectura
-    mtx_lock(&mutex);
+    //mtx_lock(&mutex);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("el archivo no existe");
@@ -98,7 +98,7 @@ int DBupdateOrCreate(const char* filename, const char* string1, const char* stri
     fclose(file);
     fclose(temp);
     rename("temp.csv", filename);
-    mtx_unlock(&mutex);
+    //mtx_unlock(&mutex);
 
     return userExists; //retornará 1 si ya existía y -1 si no
 }
@@ -110,7 +110,7 @@ int DBupdateOrCreate(const char* filename, const char* string1, const char* stri
 int DBverifySession(const char* identifier, const char* username, const char* password) {
     // Abre el archivo CSV
     const char* filename = "dbSessions.csv";
-    mtx_lock(&mutex);
+    //mtx_lock(&mutex);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("el archivo no existe");
@@ -136,7 +136,7 @@ int DBverifySession(const char* identifier, const char* username, const char* pa
     }
 
     fclose(file);
-    mtx_unlock(&mutex);
+    //mtx_unlock(&mutex);
     return -1;
 }
 
