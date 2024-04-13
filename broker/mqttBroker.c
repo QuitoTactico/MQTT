@@ -785,7 +785,7 @@ void handleSubscribe(char *message, int offset, int sockfd)
 /*                                         */
 /*******************************************/
 
-mtx_t mutex;
+mtx_t mutex2;
 
 int createSocket(char *ip, char *port, int queue)
 {
@@ -966,9 +966,9 @@ int handleRecv(void *arg)
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
 
-    mtx_lock(&mutex);
+    mtx_lock(&mutex2);
     int clientsockfd = accept(brokersockfd, (struct sockaddr *)&their_addr, &addr_size);
-    mtx_unlock(&mutex);
+    mtx_unlock(&mutex2);
 
     if (clientsockfd == -1)
     {
