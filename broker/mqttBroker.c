@@ -589,10 +589,12 @@ void sendPublishToSubscriptors(int packetID, char* topic, char* data){
     {
         for (int i = 0; i < usersCount; i++)
         {
+            /*
             if (users[i] == NULL)
             {
                 break;
             }
+            */
             printf("Notifying %s ... ", users[i]);
             sendPublishToUser(users[i], packetID, topic, data);
         }
@@ -708,6 +710,7 @@ void freeSubscribePayload(subscribePayload *payload, int amount)
     
 }
 
+/*
 void sendSuback(int sockfd, uint16_t id, subscribePayload *payload, int amount)
 {
     int offset = 2;
@@ -720,7 +723,7 @@ void sendSuback(int sockfd, uint16_t id, subscribePayload *payload, int amount)
     subackMessage[1] = amount;
 
     // identifier
-    id = ntohs(id);
+    id = htons(id);
     memcpy(subackMessage + 2, &id, 2);
 
     for (int i = 0; i < amount; i++)
@@ -734,6 +737,34 @@ void sendSuback(int sockfd, uint16_t id, subscribePayload *payload, int amount)
     if (result == -1) {
         perror("Sending SUBACK failed\n");
     }   
+}
+*/
+
+void sendSuback(int sockfd, uint16_t packetIdentifier, subscribePayload *payload, int amount)
+{
+    // Tamaño del mensaje SUBACK: 2 bytes para el encabezado, 2 bytes para el identificador del paquete, 1 byte para cada código de retorno
+    int messageSize = 4 + amount;
+    char subackMessage[messageSize];
+
+    // Encabezado
+    subackMessage[0] = SUBACK; // Debe ser 0x90 según el estándar MQTT
+    subackMessage[1] = messageSize - 2; // Longitud restante
+
+    // Identificador del paquete
+    uint16_t id = htons(packetIdentifier);
+    memcpy(subackMessage + 2, &id, 2);
+
+    // Códigos de retorno
+    for (int i = 0; i < amount; i++)
+    {
+        memcpy(subackMessage + 4 + i, &payload[i].qos, 1);
+    }
+
+    // Enviar el mensaje SUBACK
+    int result = send(sockfd, subackMessage, messageSize, 0);
+    if (result == -1) {
+        perror("Sending suback failed");
+    }
 }
 
 // ---------------------------------------
