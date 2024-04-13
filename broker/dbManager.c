@@ -6,7 +6,7 @@ mtx_t mutex;
 
 //1 si se guardó correctamente, 0 si no se pudo abrir el archivo
 int DBsaveStringsToFile(const char* filename, const char* string1, const char* string2) {
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen(filename, "a");
     if (file == NULL) {
         perror("fopen");
@@ -16,14 +16,14 @@ int DBsaveStringsToFile(const char* filename, const char* string1, const char* s
     fprintf(file, "%s|%s\n", string1, string2);
 
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return 1;
 }
 
 // para verificar si un nombre de usuario o un tópico existe en su respectivo archivo
 int DBcheckExistence(const char* filename, const char* string1) {
     // Abre el archivo CSV
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("el archivo no existe");
@@ -46,7 +46,7 @@ int DBcheckExistence(const char* filename, const char* string1) {
     }
 
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return -1;
 }
 
@@ -55,7 +55,7 @@ Retorna un int señalando si ya existía o no. 1 si ya existía y se actualizó,
 */
 int DBupdateOrCreate(const char* filename, const char* string1, const char* string2) {
     //abrimos el archivo CSV en modo de lectura
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("el archivo no existe");
@@ -98,7 +98,7 @@ int DBupdateOrCreate(const char* filename, const char* string1, const char* stri
     fclose(file);
     fclose(temp);
     rename("temp.csv", filename);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
 
     return userExists; //retornará 1 si ya existía y -1 si no
 }
@@ -110,7 +110,7 @@ int DBupdateOrCreate(const char* filename, const char* string1, const char* stri
 int DBverifySession(const char* identifier, const char* username, const char* password) {
     // Abre el archivo CSV
     const char* filename = "dbSessions.csv";
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("el archivo no existe");
@@ -136,14 +136,14 @@ int DBverifySession(const char* identifier, const char* username, const char* pa
     }
 
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return -1;
 }
 
 int DBupdateOrCreateSession(const char* id, const char* username, const char* password) {
     const char* filename = "dbSessions.csv";
     //abrimos el archivo CSV en modo de lectura
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
         perror("el archivo no existe");
@@ -187,7 +187,7 @@ int DBupdateOrCreateSession(const char* id, const char* username, const char* pa
     fclose(file);
     fclose(temp);
     rename("temp.csv", filename);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
 
     return userExists; //retornará 1 si ya existía y -1 si no
 }
@@ -196,7 +196,7 @@ int DBupdateOrCreateSession(const char* id, const char* username, const char* pa
 
 // envíale el userID y un array vacío con los tópicos. Modificará el arreglo y te retornará cuántos consiguió.
 int DBgetSubscribes(char* userID, char*** topics) {
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen("dbSubscribes.csv", "r");
     int topicsCount = 0;
     char line[256];
@@ -213,7 +213,7 @@ int DBgetSubscribes(char* userID, char*** topics) {
         }
     }
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return topicsCount;
 }
 
@@ -228,7 +228,7 @@ int DBisUserInList(char* userID, char** users, int usersCount) {
 
 // envíale el tópico y un array vacío con los usuarios. Modificará el arreglo y te retornará cuántos consiguió.
 int DBgetSubscriptors(char* topic, char*** users) {
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen("dbSubscribes.csv", "r");
     int usersCount = 0;
     char line[256];
@@ -249,14 +249,14 @@ int DBgetSubscriptors(char* topic, char*** users) {
         }
     }
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return usersCount;
 }
 
 // ---------------------------------- SOCKETS -----------------------------------------
 
 int DBgetSocketByUserID(const char* userID) {
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen("dbSockets.csv", "r");
     if (file == NULL) {
         printf("No se pudo abrir el archivo dbSockets.csv\n");
@@ -280,14 +280,14 @@ int DBgetSocketByUserID(const char* userID) {
         }
     }
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return -1; // Retorna -1 si no se encontró el nombre de usuario
 }
 
 // retorna el ID de usuario asociado a un socket
 // retorna -1 si no se encontró el nombre de usuario, 1 si lo encontró
 int DBgetUserIDbySocket(int sockfd, char* userID){
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen("dbSockets.csv", "r");
     if (file == NULL) {
         printf("No se pudo abrir el archivo dbSockets.csv\n");
@@ -312,7 +312,7 @@ int DBgetUserIDbySocket(int sockfd, char* userID){
         }
     }
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
     return -1; // Retorna -1 si no se encontró el nombre de usuario
 
 }
@@ -320,7 +320,7 @@ int DBgetUserIDbySocket(int sockfd, char* userID){
 // ---------------------------------- LOG  -----------------------------------------
 
 void DBsaveLog(char* dir, char* ip, char* request, char* args) {
-    mutex_lock(&mutex);
+    mtx_lock(&mutex);
     FILE* file = fopen(dir, "a");
     if (file == NULL) {
         printf("No se pudo abrir el archivo log\n");
@@ -340,7 +340,7 @@ void DBsaveLog(char* dir, char* ip, char* request, char* args) {
 
     fprintf(file, "\n");
     fclose(file);
-    mutex_unlock(&mutex);
+    mtx_unlock(&mutex);
 }
 
 // ---------------------------------- TESTING -----------------------------------------
