@@ -909,6 +909,8 @@ int handleServer(void *message)
 
 int handleMessage(char *message, int sockfd, char* logDir){
 
+    char* messageCopy = strdup(message);
+
     fixedHeader header = handleFixedHeader(message, sockfd);
 
     int offset = 1 + remainingOffset(header.remainingLenght);
@@ -925,7 +927,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("###############################\n\n");
 
         handleConnect(message, offset, sockfd);
-        DBsaveLog(logDir, clientIP, "CONNECT", message);
+        DBsaveLog(logDir, clientIP, "CONNECT", messageCopy);
         break;
     case PUBLISH:
         printf("###############################\n");
@@ -933,7 +935,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("###############################\n\n");
 
         handlePublish(message, offset, sockfd);
-        DBsaveLog(logDir, clientIP, "PUBLISH", message);
+        DBsaveLog(logDir, clientIP, "PUBLISH", messageCopy);
         break;
     case SUBSCRIBE:
         printf("################################\n");
@@ -941,7 +943,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
         printf("################################\n\n");
 
         handleSubscribe(message, offset, sockfd);
-        DBsaveLog(logDir, clientIP, "SUBSCRIBE", message);
+        DBsaveLog(logDir, clientIP, "SUBSCRIBE", messageCopy);
         break;
     default:
         printf("############################\n");
@@ -954,6 +956,7 @@ int handleMessage(char *message, int sockfd, char* logDir){
             printf("%d", (header.messageType >> i) & 1);
         }
         printf("\n");
+        free(messageCopy);
         break;
     }
 }
